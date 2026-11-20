@@ -14,7 +14,7 @@ import {
   reveals, roles, themes, transitions, withAnchor, type Beat, type Document, type Emphasis, type Placement, type TextRange, type Theme, type Typography,
 } from './model'
 import {draftKey, download, keep, readCollection, readDraft} from './persistence'
-import {beatStart, clamp, locate, overlap, overlapLimit, readingSeconds, totalTime} from './timeline'
+import {beatStart, clamp, locate, overlap, overlapLimit, readingSeconds, revealHold, transitionSpan, totalTime} from './timeline'
 import {HEIGHT, WIDTH} from './layout'
 import {renderFrame} from './render'
 
@@ -410,7 +410,34 @@ export function App() {
           <div className="section-heading"><h2>Presentation</h2></div>
           <Choices label="Presentation mode" values={modes} value={beat.mode} set={mode => {changeBeat({mode}); restartLive(false)}}/>
           <p className="mode-description">{descriptions[beat.mode]}</p>
-          {beat.mode === 'Reveal' && <Choices label="Reveal by" values={reveals} value={beat.reveal} set={reveal => changeBeat({reveal})}/>}
+          {beat.mode === 'Reveal' && <>
+            <Choices label="Reveal by" values={reveals} value={beat.reveal} set={reveal => changeBeat({reveal})}/>
+            <div className="reveal-timing">
+              {beat.timing ? <>
+                <Slider label="Reveal duration" value={beat.timing.revealDuration} min={0.1} max={beat.duration}
+                  step="any" unit="s" set={value => changeBeat({timing: {revealDuration: Math.min(beat.duration, Math.round(value * 100) / 100)}})}/>
+                <div className="reveal-timing-meta">
+                  <label className="duration-input">Seconds <input aria-label="Exact reveal seconds" type="number" min={0.1} max={beat.duration}
+                    step="any" key={beat.id + beat.timing.revealDuration} defaultValue={beat.timing.revealDuration} onBlur={event => {
+                      const value = event.currentTarget.valueAsNumber
+                      if (Number.isFinite(value) && value >= 0.1 && value <= beat.duration && value !== beat.timing!.revealDuration) {
+                        changeBeat({timing: {revealDuration: value}})
+                      } else event.currentTarget.value = String(beat.timing!.revealDuration)
+                    }} onKeyDown={event => {if (event.key === 'Enter') event.currentTarget.blur()}}/></label>
+                  <output aria-label="Hold duration">Hold {revealHold(beat, next, doc.beats[beatIndex - 1]).toFixed(2)}s</output>
+                  <button className="small-button" onClick={() => changeBeat({timing: undefined})}>Use automatic timing</button>
+                </div>
+                {next && beat.timing.revealDuration > beat.duration - transitionSpan(beat, next) &&
+                  <p className="mode-description">Reveal continues during the outgoing transition.</p>}
+              </> : <div className="reveal-timing-meta">
+                <span>Reveal duration · Automatic</span>
+                <button className="small-button" onClick={() => {
+                  changeBeat({timing: {revealDuration: Math.min(1.5, beat.duration)}})
+                  restartLive(false)
+                }}>Set seconds</button>
+              </div>}
+            </div>
+          </>}
           {beat.mode === 'Transform' && <>
             <Choices label="Motion effect" values={effects} value={beat.effect} set={effect => {changeBeat({effect}); restartLive(false)}}/>
             <Slider label="Intensity" value={beat.intensity} min={0} max={100} unit="%" set={intensity => changeBeat({intensity})}/>
@@ -506,7 +533,9 @@ export function App() {
             const value = e.currentTarget.valueAsNumber
             if (!Number.isFinite(value) || clamp(value, 0.5, 120) === beat.duration) {e.currentTarget.value = String(beat.duration); return}
             e.currentTarget.value = String(clamp(value, 0.5, 120))
-            changeBeat({duration: clamp(value, 0.5, 120)})
+            const duration = clamp(value, 0.5, 120)
+            const timing = beat.timing && {revealDuration: Math.min(beat.timing.revealDuration, duration)}
+            changeBeat({duration, timing})
           }} onKeyDown={e => {if (e.key === 'Enter') e.currentTarget.blur()}}/> s</label></div>
           {readingSeconds(beat) * (beat.mode === 'Reveal' ? 1.5 : 1) > beat.duration && <p className="reading-warning">This beat may be too short to read comfortably.</p>}
           {next

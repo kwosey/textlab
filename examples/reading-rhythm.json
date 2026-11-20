@@ -1,0 +1,54 @@
+{
+  "documentVersion": 1,
+  "title": "Слова и пауза",
+  "originalText": "Сначала слова.\nПотом пауза.",
+  "theme": "Night",
+  "seed": 777,
+  "beats": [
+    {
+      "id": "rhythm",
+      "text": "Сначала слова.\nПотом пауза.",
+      "duration": 4.5,
+      "mode": "Reveal",
+      "typography": {
+        "font": "Sans",
+        "size": 105,
+        "weight": 700,
+        "leading": 1.06,
+        "width": 90,
+        "align": "Left",
+        "bionic": false
+      },
+      "emphasis": [],
+      "effect": "Wave",
+      "reveal": "Words",
+      "intensity": 45,
+      "placement": {
+        "position": 0
+      },
+      "transition": {
+        "type": "Replace"
+      },
+      "scene": {
+        "background": {
+          "kind": "Gradient Drift",
+          "speed": 0.3,
+          "intensity": 30
+        },
+        "shapes": [
+          {
+            "kind": "Line",
+            "tone": "Cool",
+            "size": 30,
+            "x": 21,
+            "y": 66
+          }
+        ]
+      },
+      "wordStyles": [],
+      "timing": {
+        "revealDuration": 1.5
+      }
+    }
+  ]
+}

@@ -34,3 +34,11 @@ Open the [meta demo](examples/visual-scenes-meta-demo.json) in Compose. Scrub in
 In Beat Lab, open Scene, select each animated background, change Intensity and Speed before lifting your finger, add an expanding Circle, and switch Type motion to Punch or Oversized. Confirm that the wide preview stays visible while scrolling. Switch to Word Styling and enter text with the software keyboard. Repeat at 320, 375, 390, and 428 CSS px, and check desktop. On a physical iPhone, check Safari frame pacing, touch response and interaction while the keyboard is open. Chromium tests use emulated touch and reduced visual viewport height.
 
 Automated checks sample both canvases, validate and round-trip the meta demo, check marker and Anchor compatibility, compare PNG against Compose pixels, and ensure scene-only drags do not remeasure text. Verify the three older demos with Scene off.
+
+## Reading rhythm and Persist
+
+Import [the timing example](examples/reading-rhythm.json). Restart in Beat Lab and Compose, check that all text is visible at 1.5 seconds, and wait through the three-second Hold. Change Reveal duration while paused, and check Words, Lines and Phrases. Reload or export and reimport to verify timing.
+
+Import [the gaze example](examples/persist-gaze.json). Tap Transition from the first Beat and tap again to replay. The cyan italic word travels down and hands off to the warm bold version. It stays visible when the incoming Reveal starts. Repeat with zero overlap and with a one-second overlap. Compare The Returning Tide and check the disabled Transition button on the final Beat.
+
+Automated tests sample actual pixels through the gaze handoff at 60 Hz and use a controlled clock for real-time Reveal. On a physical iPhone, view both proof compositions in Safari and check pacing, perceived continuity, slider response and keyboard behavior.

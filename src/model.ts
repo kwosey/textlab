@@ -32,6 +32,7 @@ export type Beat = {
   reveal: typeof reveals[number]; intensity: number
   placement?: Placement
   scene?: Scene
+  timing?: {revealDuration: number}
   wordStyles?: StyledRange[]
   transition: { type: typeof transitions[number]; from?: string; to?: string; broken?: true }
 }
@@ -151,6 +152,9 @@ function validBeat(value: unknown): value is Beat {
   if (!object(value) || !id(value.id) || !text(value.text, 5000) || !range(value.duration, 0.5, 120) ||
       !oneOf(value.mode, modes) || !oneOf(value.effect, effects) || !oneOf(value.reveal, reveals) ||
       !range(value.intensity, 0, 100) || !Array.isArray(value.emphasis) || value.emphasis.length > 100) return false
+  if (value.timing !== undefined && (!object(value.timing) ||
+      Object.keys(value.timing).some(key => key !== 'revealDuration') ||
+      !range(value.timing.revealDuration, 0.1, value.duration))) return false
   if (value.scene !== undefined && !validScene(value.scene)) return false
   const placement = value.placement
   if (placement !== undefined && (!object(placement) ||
@@ -199,7 +203,7 @@ export function decode(value: unknown): Document {
       (value.safeArea !== undefined && typeof value.safeArea !== 'boolean') || !range(value.seed, 0, 4294967295) || !Number.isInteger(value.seed) || !Array.isArray(value.beats) ||
       value.beats.length < 1 || value.beats.length > 5 || !value.beats.every(validBeat) ||
       new Set(value.beats.map(beat => beat.id)).size !== value.beats.length) {
-    throw new Error('Invalid Text Lab v1 document. Check the document format, emphasis ranges and scene settings.')
+    throw new Error('Invalid Text Lab v1 document. Check the document format, emphasis ranges, scene settings and reveal timing.')
   }
   return repairLinks(value as Document)
 }

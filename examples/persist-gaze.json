@@ -1,0 +1,124 @@
+{
+  "documentVersion": 1,
+  "title": "Куда смотрим",
+  "originalText": "Где сейчас твой взгляд?\n\nТвой взгляд уже здесь.",
+  "theme": "Night",
+  "seed": 777,
+  "beats": [
+    {
+      "id": "gaze-from",
+      "text": "Где сейчас твой взгляд?",
+      "duration": 3.5,
+      "mode": "Focus",
+      "typography": {
+        "font": "Serif",
+        "size": 107,
+        "weight": 700,
+        "leading": 1.06,
+        "width": 90,
+        "align": "Left",
+        "bionic": false
+      },
+      "emphasis": [
+        {
+          "id": "anchor-from",
+          "start": 16,
+          "end": 22,
+          "role": "Anchor"
+        }
+      ],
+      "effect": "Wave",
+      "reveal": "Words",
+      "intensity": 45,
+      "placement": {
+        "position": -32,
+        "scale": 91
+      },
+      "transition": {
+        "type": "Persist",
+        "from": "anchor-from",
+        "to": "anchor-to"
+      },
+      "scene": {
+        "background": {
+          "kind": "Gradient Drift",
+          "speed": 0.55,
+          "intensity": 47
+        },
+        "typeMotion": {
+          "kind": "Punch",
+          "amount": 55
+        }
+      },
+      "wordStyles": [
+        {
+          "start": 16,
+          "end": 22,
+          "style": {
+            "color": "Cool",
+            "italic": true,
+            "marker": true,
+            "weight": "Light"
+          }
+        }
+      ]
+    },
+    {
+      "id": "gaze-to",
+      "text": "Твой взгляд уже здесь.",
+      "duration": 3.5,
+      "mode": "Reveal",
+      "typography": {
+        "font": "Mono",
+        "size": 95,
+        "weight": 500,
+        "leading": 1.06,
+        "width": 90,
+        "align": "Right",
+        "bionic": false
+      },
+      "emphasis": [
+        {
+          "id": "anchor-to",
+          "start": 5,
+          "end": 11,
+          "role": "Anchor"
+        }
+      ],
+      "effect": "Wave",
+      "reveal": "Words",
+      "intensity": 45,
+      "placement": {
+        "position": 39,
+        "scale": 109
+      },
+      "transition": {
+        "type": "Replace"
+      },
+      "scene": {
+        "background": {
+          "kind": "Flow",
+          "speed": 0.45,
+          "intensity": 45
+        },
+        "typeMotion": {
+          "kind": "Slide",
+          "amount": 69
+        }
+      },
+      "wordStyles": [
+        {
+          "start": 5,
+          "end": 11,
+          "style": {
+            "color": "Accent",
+            "weight": "Bold"
+          }
+        }
+      ],
+      "timing": {
+        "revealDuration": 1.5
+      }
+    }
+  ]
+}

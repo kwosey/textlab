@@ -301,3 +301,9 @@ textarea::selection { background: var(--accent); color: #2f211c; }
   .scene-content .small-button { min-height: 40px; }
   .scene-content .slider input { height: 29px; }
 }
+
+.reveal-timing { margin-top: 9px; }
+.reveal-timing-meta { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 7px; color: var(--subtle); font-size: 12px; }
+.reveal-timing-meta output { color: var(--accent); font-variant-numeric: tabular-nums; }
+.live-canvas-wrap { position: relative; }
+.live-time-badge { position: absolute; right: 6px; bottom: 6px; pointer-events: none; border-radius: 4px; padding: 3px 6px; color: #eee0d5; background: #231f20e8; font-size: 10px; }

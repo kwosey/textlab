@@ -4,7 +4,7 @@ export function Choices<T extends string>({label, values, value, set}: {label: s
   </div>
 }
 export function Slider({label, value, min, max, step = 1, unit = '', set}: {
-  label: string; value: number; min: number; max: number; step?: number; unit?: string; set: (value: number) => void
+  label: string; value: number; min: number; max: number; step?: number | 'any'; unit?: string; set: (value: number) => void
 }) {
   return <label className="slider"><span>{label}<output aria-hidden="true">{value}{unit}</output></span>
     <input aria-label={label} type="range" min={min} max={max} step={step} value={value} onChange={e => set(e.currentTarget.valueAsNumber)} />
