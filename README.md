@@ -36,6 +36,8 @@ Choose **Export → Export video** to render the entire composition locally at 1
 
 The browser checks H.264/MP4 first, then VP8 or VP9/WebM. Both are actual encoded files with matching MIME and extension. Instagram may require MP4. If the browser has no qualified encoder, export JSON and reopen it in a current Safari or Chromium browser on a device with encoder support. Export needs HTTPS or localhost for WebCodecs and runs without uploading the document. Rendering can take several seconds or longer on mobile.
 
+After a 1080p failure, **Retry at 720p** exports the same composition at 720 × 1280 and 30 fps. **Export diagnostics** shows the codec attempts and failure stage and can be copied without sharing project content. Use **Preview video** to check browser playback and **Download video** or **Share file** to open the result in Files on iPhone.
+
 See the [video verification fixture](examples/video-export-check.json) for a short composition that combines Cues, intentional crop, Reveal/Hold, backgrounds, shapes, all three impact treatments and a styled Persist Anchor with overlap.
 
 See [Architecture](ARCHITECTURE.md), [Data contracts](DATA_CONTRACTS.md), [Testing](TESTING.md), and [Decisions](DECISIONS.md).

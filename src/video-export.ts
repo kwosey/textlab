@@ -1,11 +1,13 @@
-import {BufferTarget, EncodedPacket, EncodedVideoPacketSource, Mp4OutputFormat, Output, WebMOutputFormat} from 'mediabunny'
+import {BlobSource, BufferTarget, EncodedPacket, EncodedVideoPacketSource, Input, MP4, Mp4OutputFormat, Output, VideoSampleSink, WEBM, WebMOutputFormat} from 'mediabunny'
 import {HEIGHT, WIDTH} from './layout'
+import {createDiagnostics, diagnosticError, VideoExportError, type VideoAttempt, type VideoResolution, type VideoStage} from './video-diagnostics'
 import type {Document as Project} from './model'
 import {renderFrame} from './render'
 import {totalTime} from './timeline'
 
 export const videoFps = 30
-const batchSize = 8
+const maxQueue = 8
+const maxOutstanding = 24
 const compressedLimit = 192 * 1024 * 1024
 const candidates = [
   {codec: 'avc1.420028', family: 'avc', extension: 'mp4', mime: 'video/mp4'},
@@ -15,7 +17,7 @@ const candidates = [
   {codec: 'vp09.00.40.08', family: 'vp9', extension: 'webm', mime: 'video/webm'},
 ] as const
 type Candidate = typeof candidates[number]
-export type VideoProgress = {frames: number; total: number; seconds: number; format: Candidate['extension']}
+export type VideoProgress = {frames: number; total: number; seconds: number; format: Candidate['extension']; width: number; height: number}
 class VideoSizeError extends Error {}
 
 export function frameTiming(index: number, duration: number) {
@@ -41,119 +43,256 @@ function abortable<T>(promise: Promise<T>, signal: AbortSignal): Promise<T> {
 }
 const yieldToPage = () => new Promise<void>(resolve => window.setTimeout(resolve, 0))
 
+async function verify(file: File, width: number, height: number, signal: AbortSignal) {
+  let disposed = false
+  const input = new Input({source: new BlobSource(file), formats: [MP4, WEBM]})
+  try {
+    const track = await deadline(input.getPrimaryVideoTrack(), signal)
+    if (!track || await deadline(track.getDisplayWidth(), signal) !== width || await deadline(track.getDisplayHeight(), signal) !== height) {
+      throw new Error('The muxed file has incorrect dimensions.')
+    }
+    if (typeof VideoDecoder === 'function' && await deadline(track.canDecode(), signal)) {
+      const sample = await deadline(new VideoSampleSink(track).getSample(0).then(data => {
+        if (signal.aborted || disposed) data?.close()
+        return data
+      }), signal)
+      if (!sample) throw new Error('The first video frame could not be decoded.')
+      sample.close()
+    }
+  } finally {
+    disposed = true
+    input.dispose()
+  }
+}
+
 async function encode(project: Project, surface: HTMLCanvasElement, ctx: CanvasRenderingContext2D, duration: number,
-  candidate: Candidate, config: VideoEncoderConfig, signal: AbortSignal, report: (progress: VideoProgress) => void) {
+  candidate: Candidate, config: VideoEncoderConfig, signal: AbortSignal, report: (progress: VideoProgress) => void,
+  inspection: VideoAttempt, verifyFile: boolean) {
   const total = Math.ceil(duration * videoFps)
+  inspection.stage = 'mux start'
   const target = new BufferTarget()
   const output = new Output({
-    format: candidate.family === 'avc' ? new Mp4OutputFormat({fastStart: false}) : new WebMOutputFormat(),
+    format: candidate.family === 'avc' ? new Mp4OutputFormat({fastStart: 'reserve'}) : new WebMOutputFormat(),
     target,
   })
   const source = new EncodedVideoPacketSource(candidate.family)
-  output.addVideoTrack(source)
-  const batch: {chunk: EncodedVideoChunk; metadata?: EncodedVideoChunkMetadata}[] = []
-  let codecError: Error | undefined
+  output.addVideoTrack(source, {maximumPacketCount: total})
+  const queue: {chunk: EncodedVideoChunk; metadata?: EncodedVideoChunkMetadata}[] = []
+  const expected = new Map<number, number>()
+  let codecError: {error: Error; stage: VideoStage} | undefined
+  let codecStage: VideoStage = 'encoder configure'
   let bytes = 0
-  let written = 0
+  inspection.stage = 'encoder configure'
   const encoder = new VideoEncoder({
-    output: (chunk, metadata) => batch.push({chunk, metadata}),
-    error: error => {codecError = error},
+    output: (chunk, metadata) => {inspection.encoded++; queue.push({chunk, metadata})},
+    error: error => {codecError = {error, stage: codecStage}},
   })
   const close = () => {if (encoder.state !== 'closed') encoder.close()}
   signal.addEventListener('abort', close, {once: true})
   let finished = false
-  try {
+
+  const update = () => report({frames: inspection.muxed, total, seconds: Math.min(inspection.muxed / videoFps, duration),
+    format: candidate.extension, width: config.width, height: config.height})
+  function check() {
     signal.throwIfAborted()
-    encoder.configure(config)
-    await abortable(output.start(), signal)
-    report({frames: 0, total, seconds: 0, format: candidate.extension})
-    for (let first = 0; first < total; first += batchSize) {
-      await yieldToPage()
-      const last = Math.min(total, first + batchSize)
-      const expected = new Map<number, number>()
-      for (let i = first; i < last; i++) {
-        if (i !== first && (i - first) % 2 === 0) await yieldToPage()
-        signal.throwIfAborted()
-        if (codecError) throw codecError
-        const {start, stamp, length} = frameTiming(i, duration)
-        if (!(start < duration)) throw new Error('Video frame falls beyond the composition.')
-        expected.set(stamp, length)
-        renderFrame(ctx, project, start)
-        const frame = new VideoFrame(surface, {timestamp: stamp, duration: length, alpha: 'discard'})
-        try {
-          encoder.encode(frame, {keyFrame: i % (2 * videoFps) === 0})
-        } finally {
-          frame.close()
-        }
-      }
-      await abortable(encoder.flush(), signal)
-      if (codecError) throw codecError
-      for (const {chunk, metadata} of batch) {
-        const length = expected.get(chunk.timestamp)
-        if (!length || !chunk.byteLength) throw new Error('The encoder returned incorrect frame timestamps or empty data.')
-        expected.delete(chunk.timestamp)
-        bytes += chunk.byteLength
-        if (bytes > compressedLimit) throw new VideoSizeError('This video exceeds the local memory limit. Shorten the composition and try again.')
-        const packet = EncodedPacket.fromEncodedChunk(chunk)
-        await abortable(source.add(packet.clone({duration: length / 1e6}), metadata), signal)
-        written++
-      }
-      if (expected.size) throw new Error('The encoder dropped video frames.')
-      batch.length = 0
-      report({frames: written, total, seconds: Math.min(written / videoFps, duration), format: candidate.extension})
+    if (codecError) {
+      inspection.stage = codecError.stage
+      throw codecError.error
     }
-    await abortable(output.finalize(), signal)
-    signal.throwIfAborted()
-    if (!target.buffer?.byteLength || written !== total) throw new Error('The encoder did not produce a complete video.')
-    const blob = new Blob([target.buffer], {type: candidate.mime})
+  }
+  async function drain() {
+    check()
+    while (queue.length) {
+      const {chunk, metadata} = queue.shift()!
+      inspection.stage = 'encoder encode'
+      const length = expected.get(chunk.timestamp)
+      if (!length || !chunk.byteLength) throw new Error('The encoder returned incorrect frame timestamps or empty data.')
+      expected.delete(chunk.timestamp)
+      bytes += chunk.byteLength
+      if (bytes > compressedLimit) {
+        inspection.stage = 'memory limit'
+        throw new VideoSizeError('The video exceeds the local memory limit.')
+      }
+      inspection.stage = 'mux packet'
+      const packet = EncodedPacket.fromEncodedChunk(chunk)
+      await abortable(source.add(packet.clone({duration: length / 1e6}), metadata), signal)
+      inspection.muxed++
+    }
+  }
+  async function flush() {
+    inspection.stage = codecStage = 'encoder flush'
+    try {
+      await deadline(encoder.flush(), signal)
+    } catch (error) {
+      check()
+      throw error
+    }
+    codecStage = 'encoder encode'
+    await drain()
+    inspection.stage = 'encoder flush'
+    if (expected.size) throw new Error('The encoder dropped video frames.')
+  }
+
+  try {
+    check()
+    encoder.configure(config)
+    codecStage = 'encoder encode'
+    inspection.stage = 'mux start'
+    await abortable(output.start(), signal)
+    update()
+    let lastReport = 0
+    let lastWork = performance.now()
+    for (let i = 0; i < total; i++) {
+      if (i % 2 === 0) await yieldToPage()
+      await drain()
+      while (encoder.encodeQueueSize >= maxQueue) {
+        inspection.stage = 'encoder encode'
+        if (performance.now() - lastWork > 500) {
+          await flush()
+          break
+        }
+        await new Promise(resolve => window.setTimeout(resolve, 5))
+        await drain()
+      }
+      if (expected.size >= maxOutstanding) await flush()
+      if (inspection.muxed >= lastReport + 8) {update(); lastReport = inspection.muxed}
+      check()
+      lastWork = performance.now()
+      inspection.stage = 'render frame'
+      const {start, stamp, length} = frameTiming(i, duration)
+      if (!(start < duration)) throw new Error('Video frame falls beyond the composition.')
+      expected.set(stamp, length)
+      renderFrame(ctx, project, start)
+      inspection.stage = 'create VideoFrame'
+      const frame = new VideoFrame(surface, {timestamp: stamp, duration: length, alpha: 'discard'})
+      try {
+        inspection.stage = 'encoder encode'
+        encoder.encode(frame, {keyFrame: i % (2 * videoFps) === 0})
+        inspection.submitted++
+        inspection.peakQueue = Math.max(inspection.peakQueue, encoder.encodeQueueSize)
+        inspection.peakOutstanding = Math.max(inspection.peakOutstanding, expected.size)
+      } finally {
+        frame.close()
+      }
+    }
+    await flush()
+    close()
+    update()
+    inspection.stage = 'mux finalize'
+    await deadline(output.finalize(), signal)
     finished = true
-    return new File([blob], videoFilename(project.title, candidate.extension), {type: candidate.mime})
+    signal.throwIfAborted()
+    if (!target.buffer?.byteLength || inspection.muxed !== total) throw new Error('The encoder did not produce a complete video.')
+    const file = new File([target.buffer], videoFilename(project.title, candidate.extension), {type: candidate.mime})
+    inspection.stage = 'file validation'
+    if (verifyFile) await verify(file, config.width, config.height, signal)
+    return file
   } finally {
     signal.removeEventListener('abort', close)
     close()
-    batch.length = 0
+    queue.length = 0
     if (!finished) await output.cancel().catch(() => {})
   }
 }
 
-export async function exportVideo(project: Project, signal: AbortSignal, report: (progress: VideoProgress) => void) {
-  if (!globalThis.VideoEncoder || !globalThis.VideoFrame || typeof VideoEncoder.isConfigSupported !== 'function') {
-    throw new Error('This browser cannot encode video locally. Use current Safari or Chromium over HTTPS, or export the JSON and open it on another device.')
-  }
-  await abortable(document.fonts.ready, signal)
-  const surface = document.createElement('canvas')
-  surface.width = WIDTH
-  surface.height = HEIGHT
-  const duration = totalTime(project)
-  let attempted = false
-  let failure: unknown
+async function deadline<T>(promise: Promise<T>, signal: AbortSignal) {
+  let timer = 0
   try {
+    return await abortable(Promise.race([promise, new Promise<never>((_, reject) => {
+      timer = window.setTimeout(() => reject(new DOMException('Operation timed out.', 'TimeoutError')), 12000)
+    })]), signal)
+  } finally {
+    window.clearTimeout(timer)
+  }
+}
+
+export async function exportVideo(project: Project, signal: AbortSignal, report: (progress: VideoProgress) => void,
+  resolution: VideoResolution = '1080p') {
+  const duration = totalTime(project)
+  const job = createDiagnostics(resolution, videoFps, Math.ceil(duration * videoFps))
+  const started = performance.now()
+  const safari = job.browser.startsWith('Safari') || /iPhone|iPad|iPod/.test(navigator.userAgent)
+  const surface = document.createElement('canvas')
+  let runtimeFailure: VideoAttempt | undefined
+  function failure(message: string) {return new VideoExportError(message, job)}
+  try {
+    if (!globalThis.VideoEncoder || !globalThis.VideoFrame || typeof VideoEncoder.isConfigSupported !== 'function') {
+      throw failure('This browser cannot encode video locally. Export JSON and open it in a current desktop Safari or Chromium browser.')
+    }
+    job.stage = 'fonts'
+    await abortable(document.fonts.ready, signal)
+    job.stage = 'canvas allocation'
+    surface.width = job.width
+    surface.height = job.height
     const ctx = surface.getContext('2d', {alpha: false})
-    if (!ctx) throw new Error('The browser could not allocate the 1080 × 1920 export canvas. Close other tabs and try again.')
-    for (const candidate of candidates) {
+    if (!ctx) throw new Error('Canvas allocation failed.')
+    ctx.setTransform(job.width / WIDTH, 0, 0, job.height / HEIGHT, 0, 0)
+    const order = safari
+      ? [candidates[1], candidates[2], candidates[0], candidates[3], candidates[4]]
+      : candidates
+    const settings = order.flatMap(candidate => {
+      const primary = {candidate, latencyMode: safari && candidate.family === 'avc' ? 'quality' as const : 'realtime' as const}
+      return safari && candidate.family === 'avc'
+        ? [primary, {candidate, latencyMode: 'realtime' as const}] : [primary]
+    })
+    for (const {candidate, latencyMode} of settings) {
       signal.throwIfAborted()
+      const bitrate = resolution === '720p' ? 3_500_000 : safari ? 5_000_000 : 8_000_000
+      const codec = resolution === '720p' && candidate.family === 'avc'
+        ? candidate.codec.slice(0, -2) + '1f' : candidate.codec
       const config: VideoEncoderConfig = {
-        codec: candidate.codec, width: WIDTH, height: HEIGHT,
-        bitrate: 8_000_000, framerate: videoFps, latencyMode: 'realtime',
+        codec, width: job.width, height: job.height, bitrate,
+        framerate: videoFps, latencyMode,
         ...(candidate.family === 'avc' && {avc: {format: 'avc'}}),
       }
+      const start = performance.now()
+      const attempt: VideoAttempt = {codec, latencyMode, bitrate, result: 'checking',
+        stage: 'codec support', submitted: 0, encoded: 0, muxed: 0, peakQueue: 0, peakOutstanding: 0, elapsedMs: 0}
+      job.attempts.push(attempt)
       try {
         const support = await abortable(VideoEncoder.isConfigSupported(config), signal)
-        if (!support.supported) continue
-        attempted = true
-        return await encode(project, surface, ctx, duration, candidate, config, signal, report)
+        attempt.supported = support.supported === true
+        if (!attempt.supported) {attempt.result = 'unsupported'; continue}
+        const file = await encode(project, surface, ctx, duration, candidate, config, signal, report, attempt, safari)
+        attempt.result = 'complete'
+        job.stage = attempt.stage
+        job.error = undefined
+        return {file, diagnostics: job}
       } catch (error) {
+        attempt.result = signal.aborted ? 'cancelled' : 'failed'
+        const info = diagnosticError(error, attempt.stage)
+        attempt.error = info
+        if (attempt.supported) runtimeFailure = attempt
+        job.stage = attempt.stage
+        job.error = info
         signal.throwIfAborted()
-        if (error instanceof VideoSizeError) throw error
-        failure = error
+        if (error instanceof VideoSizeError || info.name === 'QuotaExceededError' ||
+            info.message.includes('enough memory')) {
+          job.stage = 'memory limit'
+          throw failure('The browser ran out of memory or exceeded the local video limit.')
+        }
+      } finally {
+        attempt.elapsedMs = Math.round(performance.now() - start)
       }
     }
-    if (attempted) {
-      console.warn('Text Lab video encoding failed', failure)
-      throw new Error('The browser could not finish encoding. Close other tabs, try a shorter composition, or open its JSON on another device.')
+    if (runtimeFailure) {
+      job.stage = runtimeFailure.stage
+      job.error = runtimeFailure.error
+      throw failure(`The browser could not finish encoding at ${job.stage}. See diagnostics for each codec attempt.`)
     }
-    throw new Error('No supported H.264, VP8 or VP9 encoder at 1080 × 1920 was found. Try a current Safari or Chromium browser on another device.')
+    job.stage = 'codec support'
+    throw failure(`No supported H.264, VP8 or VP9 encoder at ${job.width} × ${job.height} was found.`)
+  } catch (error) {
+    if (signal.aborted) {
+      job.stage = 'abort'
+      job.error = diagnosticError(error, 'abort')
+      throw failure('Video export cancelled.')
+    }
+    if (error instanceof VideoExportError) throw error
+    job.error = diagnosticError(error, job.stage)
+    throw failure(`Video export failed at ${job.stage}. See diagnostics for details.`)
   } finally {
     surface.width = surface.height = 0
+    job.elapsedMs = Math.round(performance.now() - started)
   }
 }

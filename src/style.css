@@ -326,6 +326,7 @@ textarea::selection { background: var(--accent); color: #2f211c; }
 .video-export-panel {
   position: fixed; z-index: 12; inset: auto 12px max(12px, env(safe-area-inset-bottom)) auto;
   width: min(375px, calc(100% - 24px)); padding: 13px;
+  max-height: calc(100dvh - max(12px, env(safe-area-inset-bottom)) - 12px); overflow: auto;
   background: #262123; border: 1px solid #5d4841; border-radius: 10px;
   color: #f7eae2; box-shadow: 0 8px 28px #0009;
 }
@@ -339,3 +340,8 @@ textarea::selection { background: var(--accent); color: #2f211c; }
   .video-export-panel button, .video-export-panel a { min-height: 40px; }
 }
 .video-export-actions .toolbar-button { width: auto; padding-inline: 12px; }
+
+.video-export-panel video { display: block; width: 100%; max-height: 36dvh; margin-top: 10px; background: #161314; }
+.video-export-panel details { margin-top: 10px; font-size: 12px; }
+.video-export-panel summary { cursor: pointer; padding-block: 6px; }
+.video-export-panel textarea { display: block; width: 100%; margin-block: 6px; resize: vertical; font-size: 16px; }
