@@ -279,3 +279,90 @@ for (const stage of ['create VideoFrame', 'encoder flush'] as const) {
     await expect(panel(page).getByRole('link', {name: 'Download video'})).toHaveCount(0)
   })
 }
+
+for (const scenario of [
+  {resolution: '1080p', mode: 'rounded', firstKeyOnly: false},
+  {resolution: '720p', mode: 'rounded', firstKeyOnly: false},
+  {resolution: '720p', mode: 'rounded', firstKeyOnly: true},
+  {resolution: '720p', mode: 'duplicate', firstKeyOnly: false},
+  {resolution: '720p', mode: 'empty', firstKeyOnly: false},
+  {resolution: '720p', mode: 'unexpected', firstKeyOnly: false},
+  {resolution: '720p', mode: 'missing', firstKeyOnly: false},
+] as const) {
+  test(`packet 121: ${scenario.mode} at ${scenario.resolution}, first-key-only=${scenario.firstKeyOnly}`, async ({page}) => {
+    test.setTimeout(75000)
+    await page.addInitScript(({mode, firstKeyOnly}) => {
+      const NativeEncoder = VideoEncoder
+      const probe = NativeEncoder.isConfigSupported.bind(NativeEncoder)
+      const encode = NativeEncoder.prototype.encode
+      NativeEncoder.isConfigSupported = config => config.codec === 'avc1.42e028' || config.codec === 'avc1.42e01f'
+        ? probe(config) : Promise.resolve({supported: false, config})
+      NativeEncoder.prototype.encode = function(frame, options) {
+        encode.call(this, frame, firstKeyOnly && frame.timestamp !== 0 ? {keyFrame: false} : options)
+      }
+      globalThis.VideoEncoder = new Proxy(NativeEncoder, {
+        construct(Target, [init]: [VideoEncoderInit]) {
+          return new Target({...init, output(chunk, metadata) {
+            if (chunk.timestamp !== 4033333) return init.output(chunk, metadata)
+            if (mode === 'missing') return
+            const data = new Uint8Array(chunk.byteLength)
+            chunk.copyTo(data)
+            const timestamp = mode === 'rounded' ? 4033000 : mode === 'duplicate' ? 4000000
+              : mode === 'unexpected' ? 4032332 : chunk.timestamp
+            init.output(new EncodedVideoChunk({timestamp, type: chunk.type, duration: chunk.duration ?? undefined,
+              data: mode === 'empty' ? new Uint8Array() : data}), metadata)
+          }})
+        },
+      })
+    }, scenario)
+    await page.goto('/')
+    const result = await page.evaluate(async resolution => {
+      const {exportVideo}: typeof import('../src/video-export') = await import('/src/video-export.ts' as string)
+      const {demos}: typeof import('../src/demos') = await import('/src/demos.ts' as string)
+      const {diagnosticText, VideoExportError}: typeof import('../src/video-diagnostics') =
+        await import('/src/video-diagnostics.ts' as string)
+      try {
+        const {file, diagnostics} = await exportVideo(demos[0], new AbortController().signal, () => {}, resolution)
+        const {ALL_FORMATS, BlobSource, EncodedPacketSink, Input, VideoSampleSink}: typeof import('mediabunny') =
+          await import('/tests/video-probe.ts' as string)
+        const input = new Input({source: new BlobSource(file), formats: ALL_FORMATS})
+        try {
+          const track = (await input.getPrimaryVideoTrack())!
+          const timestamps: number[] = []
+          for await (const packet of new EncodedPacketSink(track).packets()) timestamps.push(packet.timestamp)
+          const decoded: number[] = []
+          for await (const sample of new VideoSampleSink(track).samplesAtTimestamps([4, 121 / 30 + 0.001, 14.99])) {
+            if (!sample) throw new Error('Missing decoded sample')
+            decoded.push(Math.round(sample.timestamp * 30))
+            sample.close()
+          }
+          return {report: diagnosticText(diagnostics), timestamps, duration: await input.computeDuration(), decoded}
+        } finally {
+          input.dispose()
+        }
+      } catch (error) {
+        if (!(error instanceof VideoExportError)) throw error
+        return {report: diagnosticText(error.diagnostics)}
+      }
+    }, scenario.resolution)
+    if (scenario.mode === 'rounded') {
+      expect(result.report).toContain('Corrected timestamps: 1. First: timestamp corrected: PTS 4033000 µs')
+      expect(result.report).toContain('matched frame 121; exact pending false')
+      expect(result.report).toContain('intended PTS 4033333 µs')
+      expect(result.report).toContain('last requested keyframe 120')
+      expect(result.timestamps).toHaveLength(450)
+      expect(result.timestamps?.every((timestamp, i) => Math.abs(timestamp - i / 30) < 0.00001)).toBe(true)
+      expect(result.duration).toBe(15)
+      expect(result.decoded).toEqual([120, 121, 449])
+    } else {
+      expect(result.timestamps).toBeUndefined()
+      const descriptions = {
+        duplicate: /duplicate frame: PTS 4000000 .* matched frame 120; exact pending false; prior packets for timestamp\/frame 1/,
+        empty: /empty packet: PTS 4033333 .* 0 bytes; .* matched frame 121; exact pending true/,
+        unexpected: /unexpected timestamp: PTS 4032332 .* matched frame none; exact pending false/,
+        missing: /Missing packet PTS \[4033333\]/,
+      }
+      expect(result.report).toMatch(descriptions[scenario.mode])
+    }
+  })
+}
