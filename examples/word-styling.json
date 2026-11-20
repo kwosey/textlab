@@ -1,0 +1,84 @@
+{
+  "documentVersion": 1,
+  "title": "A Quiet Interval",
+  "originalText": "Some thoughts need a little silence around them. Give each one room to arrive.\n\nWhat stays with you after the words have gone?",
+  "theme": "Paper",
+  "seed": 1574,
+  "beats": [
+    {
+      "id": "interval-reading",
+      "text": "Some thoughts\nneed a little silence\naround them.\n\nGive each one\nroom to arrive.",
+      "duration": 8,
+      "mode": "Reading",
+      "typography": {
+        "font": "Serif",
+        "size": 103,
+        "weight": 400,
+        "leading": 1.12,
+        "width": 79,
+        "align": "Left",
+        "bionic": false
+      },
+      "emphasis": [
+        {
+          "id": "silence",
+          "start": 28,
+          "end": 35,
+          "role": "Strong"
+        }
+      ],
+      "effect": "Wave",
+      "reveal": "Words",
+      "intensity": 45,
+      "transition": {
+        "type": "Replace"
+      },
+      "wordStyles": [
+        {
+          "start": 28,
+          "end": 35,
+          "style": {
+            "color": "Cool",
+            "italic": true,
+            "marker": true
+          }
+        }
+      ]
+    },
+    {
+      "id": "interval-focus",
+      "text": "What stays with you after the words have gone?",
+      "duration": 7,
+      "mode": "Focus",
+      "typography": {
+        "font": "Serif",
+        "size": 123,
+        "weight": 400,
+        "leading": 1.1,
+        "width": 79,
+        "align": "Left",
+        "bionic": false
+      },
+      "emphasis": [
+        {
+          "id": "stays",
+          "start": 5,
+          "end": 10,
+          "role": "Strong"
+        },
+        {
+          "id": "gone",
+          "start": 41,
+          "end": 45,
+          "role": "Subtle"
+        }
+      ],
+      "effect": "Wave",
+      "reveal": "Words",
+      "intensity": 45,
+      "transition": {
+        "type": "Replace"
+      }
+    }
+  ]
+}

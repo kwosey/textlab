@@ -1,4 +1,4 @@
-import {linkedAnchors, themes, type Beat, type Document, type Emphasis} from './model'
+import {coolColors, linkedAnchors, themes, wordAccents, type Beat, type Document, type Emphasis, type Theme} from './model'
 import {createLayout, font, HEIGHT, WIDTH, lab, reel, type Glyph, type Layout, type Surface} from './layout'
 import {pose} from './motion'
 import {beatStart, clamp, locate, overlap, readingSeconds, smooth, transitionSpan} from './timeline'
@@ -13,16 +13,29 @@ function layoutFor(ctx: CanvasRenderingContext2D, beat: Beat, surface: Surface) 
   layouts.set(beat, layout)
   return layout
 }
-function drawGlyph(ctx: CanvasRenderingContext2D, beat: Beat, size: number, glyph: Glyph, color: string, alpha: number, x = glyph.x, y = glyph.y, angle = 0) {
-  if (alpha <= 0) return
+function drawGlyph(ctx: CanvasRenderingContext2D, beat: Beat, size: number, glyph: Glyph, color: string, alpha: number, x = glyph.x, y = glyph.y, angle = 0, marker?: string, markerAlpha = alpha) {
+  if (alpha <= 0 && (!marker || markerAlpha <= 0)) return
   ctx.save()
   ctx.globalAlpha = clamp(alpha)
   ctx.fillStyle = color
-  ctx.font = font(beat, size, glyph.weight)
+  ctx.font = font(beat, size, glyph.weight, glyph.style?.italic)
   ctx.translate(x, y)
   if (angle) ctx.rotate(angle)
-  ctx.fillText(glyph.text, 0, 0)
+  if (marker) {
+    ctx.globalAlpha = clamp(markerAlpha) * 0.19
+    ctx.fillStyle = marker
+    ctx.fillRect(0, -size * 0.77, glyph.width, size * 0.94)
+    ctx.globalAlpha = clamp(alpha)
+    ctx.fillStyle = color
+  }
+  if (glyph.text) ctx.fillText(glyph.text, glyph.inset ?? 0, 0)
   ctx.restore()
+}
+function styledColor(glyph: Glyph, theme: Theme, fallback: string) {
+  if (glyph.style?.color === 'Cool') return coolColors[theme]
+  if (glyph.style?.color === 'Accent' || (glyph.style?.marker && fallback === themes[theme][2])) return wordAccents[theme]
+  if (glyph.style?.color === 'Ink') return themes[theme][1]
+  return fallback
 }
 function drawBeat(ctx: CanvasRenderingContext2D, doc: Document, beat: Beat, layout: Layout, local: number, opacity: number, offset: number, surface: Surface, omit?: Emphasis) {
   const [, ink, accent] = themes[doc.theme]
@@ -35,19 +48,30 @@ function drawBeat(ctx: CanvasRenderingContext2D, doc: Document, beat: Beat, layo
   ctx.beginPath()
   ctx.rect(0, surface.top, WIDTH, surface.bottom - surface.top)
   ctx.clip()
-  for (const [index, glyph] of layout.glyphs.entries()) {
+  // Paint markers before text so animated fragments cannot cover neighboring letters.
+  const lettering: Parameters<typeof drawGlyph>[] | undefined = layout.hasMarker ? [] : undefined
+  const drawText = (...args: Parameters<typeof drawGlyph>) => {
+    if (lettering) lettering.push(args)
+    else drawGlyph(...args)
+  }
+  let textIndex = -1
+  for (const glyph of layout.glyphs) {
+    if (glyph.text) textIndex++
+    const index = textIndex
     if (glyph.mark === omit && omit) continue
     let alpha = opacity * (glyph.mark?.role === 'Subtle' ? 0.72 : 1)
     let color = glyph.mark && glyph.mark.role !== 'Subtle' ? accent : ink
     let x = glyph.x
     let y = glyph.y + offset
     let angle = 0
+    let markerAlpha: number | undefined
     if (beat.mode === 'Focus') {
       const group = marked ? beat.emphasis.indexOf(glyph.mark!) : glyph.phrase
       const enter = group === 0 ? 1 : smooth((focusPosition - group + 0.14) / 0.28)
       const exit = group === focusCount - 1 ? 1 : smooth((group + 1.14 - focusPosition) / 0.28)
       const focus = group < 0 ? 0 : enter * exit
-      drawGlyph(ctx, beat, layout.size, glyph, ink, opacity * 0.45 * (1 - focus), x, y)
+      drawText(ctx, beat, layout.size, glyph, styledColor(glyph, doc.theme, ink), opacity * 0.45 * (1 - focus), x, y)
+      markerAlpha = opacity * (0.45 + 0.55 * focus)
       alpha = opacity * focus
       color = accent
     }
@@ -62,12 +86,14 @@ function drawBeat(ctx: CanvasRenderingContext2D, doc: Document, beat: Beat, layo
       angle = motion.angle
       alpha *= motion.alpha
       for (let layer = 3; layer > 0 && motion.echo > 0; layer--) {
-        drawGlyph(ctx, beat, layout.size, glyph, accent, alpha * motion.echo * (4 - layer) * 0.13,
+        drawText(ctx, beat, layout.size, glyph, styledColor(glyph, doc.theme, accent), alpha * motion.echo * (4 - layer) * 0.13,
           x + layer * (8 + 12 * motion.echo) * surface.unit, y + layer * (12 + 18 * motion.echo) * surface.unit + Math.sin(index), angle)
       }
     }
-    drawGlyph(ctx, beat, layout.size, glyph, color, alpha, x, y, angle)
+    if (glyph.style?.marker) drawGlyph(ctx, beat, layout.size, {...glyph, text: ''}, color, 0, x, y, angle, accent, markerAlpha ?? alpha)
+    drawText(ctx, beat, layout.size, glyph, styledColor(glyph, doc.theme, color), alpha, x, y, angle)
   }
+  lettering?.forEach(args => drawGlyph(...args))
   ctx.restore()
 }
 function anchorRun(layout: Layout, mark: Emphasis) {
@@ -102,7 +128,9 @@ function drawTransition(ctx: CanvasRenderingContext2D, doc: Document, beat: Beat
   const left = links && anchorRun(layout, links[0])
   const right = links && anchorRun(incoming, links[1])
   const singleLine = (run: Glyph[]) => !!run.length && run.every(g => g.line === run[0].line)
-  const canPersist = left && right && singleLine(left) && singleLine(right)
+  const canPersist = left?.length && right?.length && left && right
+  const needsRuns = canPersist && (!singleLine(left) || !singleLine(right) ||
+    left.some(piece => piece.style) || right.some(piece => piece.style))
   const drift = beat.transition.type === 'Transform' ? 145 * surface.unit : 0
   const stagger = canPersist || overlap(beat, next) > 0
   const outgoingOpacity = stagger ? 1 - smooth(progress / 0.66) : 1 - progress
@@ -120,7 +148,21 @@ function drawTransition(ctx: CanvasRenderingContext2D, doc: Document, beat: Beat
     const size = layout.size + (incoming.size - layout.size) * progress
     const mark = links[0]
     const glyph = {...a, text: beat.text.slice(mark.start, mark.end), weight: Math.round(a.weight + (b.weight - a.weight) * progress)}
-    if (beat.typography.font === next.typography.font) drawGlyph(ctx, beat, size, glyph, accent, 1, x, y, angle)
+    if (needsRuns) {
+      const drawRun = (run: Glyph[], source: Beat, sourceSize: number, alpha: number) => {
+        for (const piece of run) {
+          const scale = size / sourceSize
+          const dx = (piece.x - run[0].x) * scale
+          const dy = (piece.y - run[0].y) * scale
+          drawGlyph(ctx, source, size, {...piece, width: piece.width * scale, inset: (piece.inset ?? 0) * scale},
+            styledColor(piece, doc.theme, accent), alpha,
+            x + Math.cos(angle) * dx - Math.sin(angle) * dy, y + Math.sin(angle) * dx + Math.cos(angle) * dy,
+            angle, piece.style?.marker ? accent : undefined)
+        }
+      }
+      drawRun(left, beat, layout.size, 1 - progress)
+      drawRun(right, next, incoming.size, progress)
+    } else if (beat.typography.font === next.typography.font) drawGlyph(ctx, beat, size, glyph, accent, 1, x, y, angle)
     else {
       drawGlyph(ctx, beat, size, glyph, accent, 1 - progress, x, y, angle)
       drawGlyph(ctx, next, size, glyph, accent, progress, x, y, angle)

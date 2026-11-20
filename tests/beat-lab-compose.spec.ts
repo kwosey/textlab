@@ -87,7 +87,7 @@ test('local transition loops show Replace, linked Persist and Transform between 
     await expect(modes.getByRole('button', {name: 'Transition'})).toHaveAttribute('aria-pressed', 'true')
     const first = await digest(live)
     await expect.poll(() => digest(live)).not.toBe(first)
-    if (name === 'Persist') await expect(page.getByLabel('Link anchor ranges')).toHaveValue(/tide-in.*tide-out/)
+    if (name === 'Persist') await expect(page.locator('.anchor-card')).toContainText('tide')
   }
   await page.getByRole('region', {name: 'Editor'}).locator('.beat-card').last().click()
   await expect(modes.getByRole('button', {name: 'Transition'})).toBeDisabled()

@@ -5,9 +5,11 @@ import {
 } from 'lucide-react'
 import {demos} from './demos'
 import {LivePreview} from './LivePreview'
+import {AnchorLinks} from './AnchorLinks'
+import {WordStyling} from './WordStyling'
 import {
-  boundaries, decode, editText, effects, fonts, linkedAnchors, makeBeat, modes, mutate, newId, repairLinks,
-  reveals, roles, themes, transitions, type Beat, type Document, type Emphasis, type Placement, type Theme, type Typography,
+  boundaries, decode, editText, effects, fonts, makeBeat, modes, mutate, newId, repairLinks,
+  reveals, roles, themes, transitions, withAnchor, type Beat, type Document, type Emphasis, type Placement, type TextRange, type Theme, type Typography,
 } from './model'
 import {draftKey, download, keep, readCollection, readDraft} from './persistence'
 import {beatStart, clamp, locate, overlap, overlapLimit, readingSeconds, totalTime} from './timeline'
@@ -57,6 +59,7 @@ export function App() {
   const [notice, setNotice] = useState(initial.damaged ? 'The draft could not be read. Your saved collection is still available.' : '')
   const [frameWarning, setFrameWarning] = useState(false)
   const [selection, setSelection] = useState([0, 0])
+  const [styleWords, setStyleWords] = useState(false)
   const [showSource, setShowSource] = useState(false)
   const [shortViewport, setShortViewport] = useState(false)
   const [workspace, setWorkspace] = useState<Workspace>('lab')
@@ -244,6 +247,7 @@ export function App() {
     seek(duration)
     setSelected(added.id)
     setSelection([0, 0])
+    setStyleWords(false)
     textarea.current?.focus()
   }
   function moveBeat(offset: number) {
@@ -269,13 +273,15 @@ export function App() {
   function splitBeat() {
     const index = selection[0]
     if (index <= 0 || index >= beat.text.length || doc.beats.length >= 5 || !boundaries(beat.text).has(index)) return
-    const left = {...beat, text: beat.text.slice(0, index), emphasis: beat.emphasis.filter(m => m.end <= index), transition: {type: 'Replace'} as const}
-    const right = {...beat, id: newId(), text: beat.text.slice(index), emphasis: beat.emphasis.filter(m => m.start >= index).map(m => ({...m, start: m.start - index, end: m.end - index}))}
+    const left = {...beat, text: beat.text.slice(0, index), emphasis: beat.emphasis.filter(m => m.end <= index),
+      wordStyles: beat.wordStyles?.filter(run => run.start < index).map(run => ({...run, end: Math.min(run.end, index)})),
+      transition: {type: 'Replace'} as const}
+    const right = {...beat, id: newId(), text: beat.text.slice(index),
+      wordStyles: beat.wordStyles?.filter(run => run.end > index).map(run => ({...run, start: Math.max(run.start, index) - index, end: run.end - index})), emphasis: beat.emphasis.filter(m => m.start >= index).map(m => ({...m, start: m.start - index, end: m.end - index}))}
     commit({...doc, beats: [...doc.beats.slice(0, beatIndex), left, right, ...doc.beats.slice(beatIndex + 1)]})
     setSelection([0, 0])
   }
-  function mark(role: Emphasis['role']) {
-    const [start, end] = selection
+  function mark(role: Emphasis['role'], {start, end} = {start: selection[0], end: selection[1]}) {
     const edges = boundaries(beat.text)
     if (end <= start || !edges.has(start) || !edges.has(end)) {
       setNotice('Select a complete word or passage to add an emphasis.')
@@ -286,14 +292,25 @@ export function App() {
     changeBeat({emphasis: [...retained, {id: newId(), start, end, role}].sort((a, b) => a.start - b.start)})
     setNotice('')
   }
-  function setLink(pair: string) {
-    const [from, to] = pair ? JSON.parse(pair) as [string, string] : []
+  function setLink(from: string, to: string) {
     changeBeat({transition: {type: 'Persist', from, to}})
     restartLive(true)
   }
-  const pairs = beat.emphasis.filter(m => m.role === 'Anchor').flatMap(a =>
-    (next?.emphasis ?? []).filter(b => b.role === 'Anchor' && beat.text.slice(a.start, a.end) === next?.text.slice(b.start, b.end))
-      .map(b => ({a, b, text: beat.text.slice(a.start, a.end)})))
+  function linkPassages(from: TextRange, to: TextRange) {
+    if (!next || beat.text.slice(from.start, from.end) !== next.text.slice(to.start, to.end)) return false
+    const outgoing = withAnchor(beat, from)
+    const incoming = withAnchor(next, to)
+    if (!outgoing || !incoming) {
+      setNotice('A beat can have up to 100 emphasis ranges.')
+      return false
+    }
+    const beats = [...doc.beats]
+    beats[beatIndex] = {...outgoing.beat, transition: {type: 'Persist', from: outgoing.anchor.id, to: incoming.anchor.id}}
+    beats[beatIndex + 1] = incoming.beat
+    commit({...doc, beats})
+    restartLive(true)
+    return true
+  }
   async function importFile(source?: File) {
     if (!source) return
     try {
@@ -373,15 +390,19 @@ export function App() {
           {beatCards}
         </div>
         <div className="editor-section text-section">
-          <div className="section-heading"><h2><label htmlFor="beat-text">Beat {pad(beatIndex + 1)} · Text</label></h2>
+          <div className="section-heading text-heading"><h2><label htmlFor="beat-text">Beat {pad(beatIndex + 1)} · Text</label></h2>
+          <Choices label="Text workspace" values={['Edit text', 'Style words'] as const}
+            value={styleWords ? 'Style words' : 'Edit text'} set={view => setStyleWords(view === 'Style words')}/>
+
             <div className="inline-actions">
               <IconButton label="Move beat earlier" action={() => moveBeat(-1)} disabled={beatIndex === 0}><ArrowUp size={15}/></IconButton>
               <IconButton label="Move beat later" action={() => moveBeat(1)} disabled={!next}><ArrowDown size={15}/></IconButton>
               <IconButton label="Delete beat" action={removeBeat} disabled={doc.beats.length === 1}><Trash2 size={15}/></IconButton>
             </div>
           </div>
+          <div className="text-entry" hidden={styleWords}>
           <textarea id="beat-text" ref={textarea} value={beat.text} maxLength={5000} placeholder="Write or paste a passage…" onChange={e => {
-            const updated = editText(beat, e.currentTarget.value)
+            const updated = editText(beat, e.currentTarget.value, e.currentTarget.selectionStart)
             changeBeat(updated)
             setSelection([e.currentTarget.selectionStart, e.currentTarget.selectionEnd])
           }} onSelect={e => setSelection([e.currentTarget.selectionStart, e.currentTarget.selectionEnd])}/>
@@ -389,6 +410,9 @@ export function App() {
             <button className="split-button" onClick={splitBeat} disabled={!selection[0] || selection[0] >= beat.text.length || doc.beats.length >= 5}>Split at cursor</button>
           </div>
           {beat.emphasis.length > 0 && <div className="mark-list">{beat.emphasis.map(item => <button key={item.id} title={'Remove ' + item.role} aria-label={'Remove emphasis ' + beat.text.slice(item.start, item.end)} onClick={() => changeBeat({emphasis: beat.emphasis.filter(m => m.id !== item.id)})}>{beat.text.slice(item.start, item.end)} <X size={12}/></button>)}</div>}
+          </div>
+          {styleWords && <WordStyling key={JSON.stringify([beat.id, beat.text])} beat={beat} theme={doc.theme}
+            onStyle={wordStyles => changeBeat({wordStyles})} onRole={mark}/>}
           <button className="source-toggle" aria-expanded={showSource} onClick={() => setShowSource(!showSource)}><ChevronDown size={13}/> Original text</button>
           {showSource && <textarea aria-label="Original text" value={doc.originalText} maxLength={25000} onChange={e => commit({...doc, originalText: e.currentTarget.value})}/>}
         </div>
@@ -408,14 +432,10 @@ export function App() {
               if (transition !== beat.transition.type) changeBeat({transition: {type: transition}})
               restartLive(true)
             }}/>
-            {beat.transition.type === 'Persist' && (pairs.length
-              ? <label className="link-field">Link anchor ranges
-                <select aria-label="Link anchor ranges" value={linkedAnchors(beat, next) ? JSON.stringify([beat.transition.from, beat.transition.to]) : ''} onChange={e => setLink(e.currentTarget.value)}>
-                  <option value="">Choose a pair</option>
-                  {pairs.map(({a, b, text}) => <option key={JSON.stringify([a.id,b.id])} value={JSON.stringify([a.id,b.id])}>{text} ({a.start} → {b.start})</option>)}
-                </select>
-              </label>
-              : <p className="mode-description">Mark the same passage as Anchor in both beats to link it.</p>)}
+            {beat.transition.type === 'Persist' && <AnchorLinks key={JSON.stringify([beat.id, next.id, beat.text, next.text])}
+              beat={beat} next={next} index={beatIndex} onLink={setLink} onManual={linkPassages}
+              onClear={() => {changeBeat({transition: {type: 'Persist'}}); restartLive(true)}}/>}
+
         </div>}
         <div className="editor-section">
           <div className="section-heading"><h2>Typography</h2>

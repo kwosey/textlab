@@ -12,6 +12,13 @@ export const themes = {
 } as const
 export type Theme = keyof typeof themes
 export type Emphasis = { id: string; start: number; end: number; role: typeof roles[number] }
+export type TextRange = {start: number; end: number}
+export const wordColors = ['Ink', 'Accent', 'Cool'] as const
+export const wordWeights = ['Light', 'Bold'] as const
+export const wordAccents: Record<Theme, string> = {Paper: '#902b16', Night: '#f6a176', Moss: '#28543a', Lilac: '#653585'}
+export const coolColors: Record<Theme, string> = {Paper: '#245783', Night: '#9bd6ed', Moss: '#294f7c', Lilac: '#205b64'}
+export type WordStyle = {color?: typeof wordColors[number]; weight?: typeof wordWeights[number]; marker?: true; italic?: true}
+export type StyledRange = TextRange & {style: WordStyle}
 export type Typography = {
   font: typeof fonts[number]; size: number; weight: number; leading: number; width: number
   align: 'Left' | 'Center' | 'Right'; bionic: boolean
@@ -22,7 +29,8 @@ export type Beat = {
   typography: Typography; emphasis: Emphasis[]; effect: typeof effects[number]
   reveal: typeof reveals[number]; intensity: number
   placement?: Placement
-  transition: { type: typeof transitions[number]; from?: string; to?: string }
+  wordStyles?: StyledRange[]
+  transition: { type: typeof transitions[number]; from?: string; to?: string; broken?: true }
 }
 export type Document = { documentVersion: 1; title: string; originalText: string; theme: Theme; seed: number; beats: Beat[]; safeArea?: boolean }
 export const newId = () => crypto.randomUUID()
@@ -36,24 +44,85 @@ export const segments = (value: string) => [...graphemes.segment(value)]
 export function boundaries(value: string) {
   return new Set([...segments(value).map(part => part.index), value.length])
 }
-export function editText(beat: Beat, value: string): Beat {
+export function editText(beat: Beat, value: string, caret?: number): Beat {
   const old = segments(beat.text)
   const next = segments(value)
+  const position = caret === undefined ? -1 : caret === value.length ? next.length : next.findIndex(part => part.index === caret)
+  const tail = position < 0 ? -1 : next.length - position
+  const matchesTail = tail >= 0 && tail <= old.length &&
+    old.slice(old.length - tail).every((part, i) => part.segment === next[position + i].segment)
   let prefix = 0
-  let suffix = 0
-  while (prefix < old.length && prefix < next.length && old[prefix].segment === next[prefix].segment) prefix++
-  while (suffix < Math.min(old.length, next.length) - prefix &&
-    old[old.length - 1 - suffix].segment === next[next.length - 1 - suffix].segment) suffix++
+  let suffix = matchesTail ? tail : 0
+  while (prefix < Math.min(old.length, next.length) - suffix && old[prefix].segment === next[prefix].segment) prefix++
+  if (!matchesTail || tail === 0) {
+    while (suffix < Math.min(old.length, next.length) - prefix &&
+      old[old.length - 1 - suffix].segment === next[next.length - 1 - suffix].segment) suffix++
+  }
   const left = old[prefix]?.index ?? beat.text.length
   const right = old[old.length - suffix]?.index ?? beat.text.length
   const shift = value.length - beat.text.length
-  const emphasis = beat.emphasis.flatMap(mark => {
-    if (mark.end <= left) return [mark]
-    if (mark.start >= right) return [{...mark, start: mark.start + shift, end: mark.end + shift}]
-    return []
-  })
-  return {...beat, text: value, emphasis}
+  // A changed passage loses its range. Intact suffixes keep their original words.
+  function rebase<T extends TextRange>(ranges: T[]) {
+    return ranges.flatMap(mark => {
+      if (mark.end <= left) return [mark]
+      if (mark.start >= right) return [{...mark, start: mark.start + shift, end: mark.end + shift}]
+      return []
+    })
+  }
+  return {...beat, text: value, emphasis: rebase(beat.emphasis),
+    ...(beat.wordStyles && {wordStyles: rebase(beat.wordStyles)})}
 }
+
+export function styleAt(beat: Beat, selection: TextRange): WordStyle {
+  const runs = (beat.wordStyles ?? []).filter(run => run.start < selection.end && run.end > selection.start)
+  const keys = ['color', 'weight', 'marker', 'italic'] as const
+  const covered = runs.reduce((sum, run) => sum + Math.min(run.end, selection.end) - Math.max(run.start, selection.start), 0)
+  if (!runs.length || covered !== selection.end - selection.start) return {}
+  return Object.fromEntries(keys.filter(key => runs.every(run => run.style[key] === runs[0].style[key]))
+    .map(key => [key, runs[0].style[key]]))
+}
+
+export function editStyle(beat: Beat, selection: TextRange, patch: WordStyle, reset = false): StyledRange[] {
+  const spans = beat.wordStyles ?? []
+  const cuts = [...new Set([selection.start, selection.end, ...spans.flatMap(run => [run.start, run.end])])].sort((a, b) => a - b)
+  const result: StyledRange[] = []
+  for (let i = 0; i < cuts.length - 1; i++) {
+    const start = cuts[i]
+    const end = cuts[i + 1]
+    const prior = spans.find(run => run.start <= start && run.end >= end)?.style
+    const inside = start >= selection.start && end <= selection.end
+    const style: WordStyle = Object.fromEntries(Object.entries(inside ? {...(reset ? {} : prior), ...patch} : prior ?? {})
+      .filter(([, value]) => value !== undefined).sort(([a], [b]) => a.localeCompare(b)))
+    if (!Object.keys(style).length) continue
+    const previous = result.at(-1)
+    if (previous?.end === start && JSON.stringify(previous.style) === JSON.stringify(style)) previous.end = end
+    else result.push({start, end, style})
+  }
+  return result
+}
+
+export function withAnchor(beat: Beat, selection: TextRange) {
+  const existing = beat.emphasis.find(mark => mark.role === 'Anchor' && mark.start === selection.start && mark.end === selection.end)
+  if (existing) return {beat, anchor: existing}
+  const anchor = {...selection, id: newId(), role: 'Anchor'} as const
+  const emphasis = beat.emphasis.flatMap(mark => {
+    if (mark.end <= selection.start || mark.start >= selection.end) return [mark]
+    const parts: Emphasis[] = []
+    if (mark.start < selection.start) parts.push({...mark, end: selection.start})
+    if (mark.end > selection.end) parts.push({...mark, start: selection.end, id: newId()})
+    return parts
+  })
+  if (emphasis.length >= 100) return
+  return {beat: {...beat, emphasis: [...emphasis, anchor].sort((a, b) => a.start - b.start)}, anchor}
+}
+
+export function matchingAnchors(beat: Beat, next: Beat) {
+  const incoming = next.emphasis.filter(mark => mark.role === 'Anchor')
+  return beat.emphasis.filter(mark => mark.role === 'Anchor').flatMap(from => incoming
+    .filter(to => beat.text.slice(from.start, from.end) === next.text.slice(to.start, to.end))
+    .map(to => ({from, to})))
+}
+
 export function linkedAnchors(beat: Beat, next?: Beat) {
   const a = beat.emphasis.find(mark => mark.role === 'Anchor' && mark.id === beat.transition.from)
   const b = next?.emphasis.find(mark => mark.role === 'Anchor' && mark.id === beat.transition.to)
@@ -63,7 +132,8 @@ export function linkedAnchors(beat: Beat, next?: Beat) {
 export function repairLinks(doc: Document): Document {
   return {...doc, beats: doc.beats.map((beat, index) => {
     if (beat.transition.type !== 'Persist' || linkedAnchors(beat, doc.beats[index + 1])) return beat
-    return {...beat, transition: {type: 'Persist'}}
+    if (!beat.transition.from) return beat
+    return {...beat, transition: {type: 'Persist', broken: true}}
   })}
 }
 function object(value: unknown): value is Record<string, unknown> {
@@ -91,7 +161,23 @@ function validBeat(value: unknown): value is Beat {
   if (!object(transition) || !oneOf(transition.type, transitions) ||
       !(transition.from === undefined && transition.to === undefined ||
         transition.type === 'Persist' && id(transition.from) && id(transition.to))) return false
+  if (transition.broken !== undefined &&
+      (transition.broken !== true || transition.type !== 'Persist' || transition.from !== undefined)) return false
   const edges = boundaries(value.text)
+  if (value.wordStyles !== undefined) {
+    if (!Array.isArray(value.wordStyles) || value.wordStyles.length > 5000) return false
+    let last = 0
+    for (const run of value.wordStyles) {
+      if (!object(run) || !range(run.start, last, value.text.length) || !range(run.end, run.start + 1, value.text.length) ||
+          !edges.has(run.start) || !edges.has(run.end) || !object(run.style)) return false
+      const {color, weight, marker, italic} = run.style
+      if ((color !== undefined && !oneOf(color, wordColors)) ||
+          (weight !== undefined && !oneOf(weight, wordWeights)) ||
+          (marker !== undefined && marker !== true) || (italic !== undefined && italic !== true) ||
+          (color === undefined && weight === undefined && marker === undefined && italic === undefined)) return false
+      last = run.end
+    }
+  }
   const used = new Set<string>()
   let lastEnd = 0
   for (const mark of value.emphasis) {

@@ -20,3 +20,9 @@ At 320, 375, 390, and 428 CSS px, open Beat Lab and paste Russian text. Scroll t
 In Compose, move a text block and adjust its scale, alignment, width, duration, and overlap. Check that total time changes, the two paragraphs trade places clearly, and PNG excludes guides. Scrub and return to Beat Lab, then reopen Compose and check its playhead. Verify both workspaces on desktop.
 
 Playwright checks pixels, pointer movement before release, document compatibility, exports, scroll and selection restoration, and the reduced viewport in Chromium. Repeat with Safari’s software keyboard and selection handles on a physical iPhone.
+
+## Word styling and Anchor links
+
+Open Style words on a phone and tap a word, then use Phrase to select across punctuation. Apply Cool, Bold, Marker, and Italic. Verify that the sticky frame updates immediately during Reveal, Focus, and Transform. Reset the style and check that the role remains. Check keyboard arrow navigation between words and edit before or inside the styled phrase.
+
+In The Returning Tide, confirm the linked `tide` card at zero overlap. Remove the link, confirm the suggested pair, then edit an Anchor and check that a broken link is shown. Try choosing both passages manually. On a physical iPhone, repeat selection and linking by touch, toggle between Edit text and Style words with the Safari keyboard up, and check the sticky frame and scroll behavior.

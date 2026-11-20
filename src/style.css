@@ -231,3 +231,53 @@ textarea::selection { background: var(--accent); color: #2f211c; }
   [data-short-viewport=true] .compose-workspace .stage { --stage-height: 150px; }
   [data-short-viewport=true] textarea { scroll-margin-top: 172px; }
 }
+
+.text-entry, .word-styling, .anchor-links { margin-top: 9px; min-width: 0; }
+.word-picker { min-width: 0; }
+.word-picker-head { display: flex; align-items: center; justify-content: space-between; gap: 9px; }
+.word-picker-head strong { font-size: 12px; }
+.word-picker button, .word-tools button, .anchor-links button {
+  color: var(--muted); background: var(--input); border: 1px solid #494041;
+  border-radius: 7px; padding: 5px 9px; min-height: 34px; font-size: 12px;
+}
+.word-picker button[aria-pressed=true], .word-tools button[aria-pressed=true] {
+  background: #372923; border-color: #a47158; color: var(--accent);
+}
+.word-tiles {
+  margin: 7px 0 10px; padding: 6px; white-space: pre-wrap; overflow-wrap: anywhere;
+  max-height: 174px; overflow: auto; border: 1px solid var(--line); border-radius: 8px; background: #191819;
+  scrollbar-width: thin;
+}
+.word-tiles button { margin-block: 2px; padding-inline: 7px; max-width: 100%; overflow-wrap: anywhere; }
+.word-tools { display: grid; gap: 5px; }
+.word-tool-row { display: flex; flex-wrap: wrap; align-items: center; gap: 5px; }
+.word-tool-row > span { flex: 0 0 35px; color: var(--subtle); font-size: 11px; }
+.word-tool-row button { display: inline-flex; align-items: center; gap: 5px; }
+.color-dot { width: 10px; height: 10px; border: 1px solid #918789; border-radius: 50%; flex: none; }
+.word-tools .reset-words { justify-self: start; border-color: transparent; background: transparent; padding-left: 0; }
+.anchor-card, .manual-pickers {
+  display: grid; gap: 8px; padding: 10px; border: 1px solid #59483e; border-radius: 9px; background: #282221;
+}
+.anchor-status { display: flex; align-items: center; gap: 6px; color: var(--accent); font-size: 12px; }
+.anchor-passage { display: grid; grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); gap: 6px; align-items: center; }
+.anchor-passage > span { padding: 7px; background: #211e1e; border-radius: 6px; }
+.anchor-passage small, .anchor-pair small { display: block; color: var(--subtle); font-size: 10px; margin-bottom: 4px; }
+.anchor-passage strong, .anchor-pair { overflow-wrap: anywhere; white-space: pre-wrap; }
+.anchor-actions { display: flex; gap: 6px; flex-wrap: wrap; }
+.anchor-warning { color: var(--accent); font-size: 12px; margin: 6px 0; }
+.anchor-suggestions { display: grid; gap: 6px; max-height: 260px; overflow: auto; scrollbar-width: thin; }
+.anchor-pair { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 5px; text-align: left; }
+.anchor-pair > span:first-child { grid-column: 1 / -1; color: var(--accent); }
+.anchor-pair strong { color: #ffcea8; }
+.manual-link, .manual-pickers { margin-top: 7px; }
+.manual-pickers .manual-confirm { justify-self: start; color: var(--accent); }
+@media (max-width: 760px) {
+  .word-picker button, .word-tools button, .anchor-links button { min-height: 42px; }
+  .word-tool-row > span { flex-basis: 28px; }
+  .word-tool-row button { padding-inline: 7px; }
+}
+
+.text-heading > .choices { flex: 0 1 auto; }
+@media (max-width: 470px) {
+  .text-heading h2 { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
+}

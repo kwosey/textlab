@@ -111,7 +111,7 @@ test.describe('mobile editor and transport', () => {
     await page.goto('/')
     await page.getByRole('button', {name: 'The Returning Tide', exact: true}).tap()
     await expect(page.getByRole('button', {name: 'Persist', exact: true})).toHaveAttribute('aria-pressed', 'true')
-    await expect(page.getByLabel('Link anchor ranges')).toHaveValue(/tide-in.*tide-out/)
+    await expect(page.locator('.anchor-card')).toContainText('tide')
     await viewButton(page, 'Compose').tap()
     await scrub(page, 5.6)
     const transition = await pixels(full(page))
