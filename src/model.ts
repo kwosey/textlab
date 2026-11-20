@@ -16,13 +16,15 @@ export type Typography = {
   font: typeof fonts[number]; size: number; weight: number; leading: number; width: number
   align: 'Left' | 'Center' | 'Right'; bionic: boolean
 }
+export type Placement = {position?: number; scale?: number; overlap?: number}
 export type Beat = {
   id: string; text: string; duration: number; mode: typeof modes[number]
   typography: Typography; emphasis: Emphasis[]; effect: typeof effects[number]
   reveal: typeof reveals[number]; intensity: number
+  placement?: Placement
   transition: { type: typeof transitions[number]; from?: string; to?: string }
 }
-export type Document = { documentVersion: 1; title: string; originalText: string; theme: Theme; seed: number; beats: Beat[] }
+export type Document = { documentVersion: 1; title: string; originalText: string; theme: Theme; seed: number; beats: Beat[]; safeArea?: boolean }
 export const newId = () => crypto.randomUUID()
 export const makeBeat = (text: string, props: Partial<Beat> = {}): Beat => ({
   id: newId(), text, duration: 6, mode: 'Reading',
@@ -76,6 +78,11 @@ function validBeat(value: unknown): value is Beat {
   if (!object(value) || !id(value.id) || !text(value.text, 5000) || !range(value.duration, 0.5, 120) ||
       !oneOf(value.mode, modes) || !oneOf(value.effect, effects) || !oneOf(value.reveal, reveals) ||
       !range(value.intensity, 0, 100) || !Array.isArray(value.emphasis) || value.emphasis.length > 100) return false
+  const placement = value.placement
+  if (placement !== undefined && (!object(placement) ||
+      (placement.position !== undefined && !range(placement.position, -100, 100)) ||
+      (placement.scale !== undefined && !range(placement.scale, 50, 150)) ||
+      (placement.overlap !== undefined && !range(placement.overlap, 0, 2)))) return false
   const t = value.typography
   if (!object(t) || !oneOf(t.font, fonts) || !range(t.size, 36, 170) || !range(t.weight, 400, 900) ||
       !range(t.leading, 1, 1.8) || !range(t.width, 45, 92) ||
@@ -99,7 +106,7 @@ function validBeat(value: unknown): value is Beat {
 export function decode(value: unknown): Document {
   if (!object(value) || value.documentVersion !== 1 || !id(value.title) ||
       !text(value.originalText, 25000) || !oneOf(value.theme, Object.keys(themes)) ||
-      !range(value.seed, 0, 4294967295) || !Number.isInteger(value.seed) || !Array.isArray(value.beats) ||
+      (value.safeArea !== undefined && typeof value.safeArea !== 'boolean') || !range(value.seed, 0, 4294967295) || !Number.isInteger(value.seed) || !Array.isArray(value.beats) ||
       value.beats.length < 1 || value.beats.length > 5 || !value.beats.every(validBeat) ||
       new Set(value.beats.map(beat => beat.id)).size !== value.beats.length) {
     throw new Error('Invalid Text Lab v1 document. Check the document format and emphasis ranges.')
