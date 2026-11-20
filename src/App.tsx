@@ -1,7 +1,7 @@
-import {useEffect, useLayoutEffect, useRef, useState, type ReactNode} from 'react'
+import {useEffect, useLayoutEffect, useRef, useState, type PointerEvent, type ReactNode} from 'react'
 import {
   ArrowDown, ArrowLeft, ArrowRight, ArrowUp, Bookmark, Check, ChevronDown, Download, FileJson,
-  ImageDown, Layers2, Pause, Play, Plus, Redo2, Repeat2, RotateCcw, Shuffle, Trash2, Type, Undo2, Upload, X,
+  ImageDown, Layers2, Maximize2, Pause, Play, Plus, Redo2, Repeat2, RotateCcw, Shuffle, Trash2, Type, Undo2, Upload, X,
 } from 'lucide-react'
 import {demos} from './demos'
 import {
@@ -41,6 +41,8 @@ function Slider({label, value, min, max, step = 1, unit = '', set}: {
 const seconds = (time: number) => time.toFixed(1) + 's'
 const pad = (number: number) => String(number).padStart(2, '0')
 type History = {past: Document[]; doc: Document; future: Document[]}
+type MobileView = 'edit' | 'preview'
+const mobileWidth = '(max-width: 760px)'
 
 export function App() {
   const [initial] = useState(() => readDraft(demos[0]))
@@ -56,7 +58,15 @@ export function App() {
   const [frameWarning, setFrameWarning] = useState(false)
   const [selection, setSelection] = useState([0, 0])
   const [showSource, setShowSource] = useState(false)
+  const [mobile, setMobile] = useState(() => matchMedia(mobileWidth).matches)
+  const [mobileView, setMobileView] = useState<MobileView>('edit')
   const canvas = useRef<HTMLCanvasElement>(null)
+  const compactCanvas = useRef<HTMLCanvasElement>(null)
+  const editButton = useRef<HTMLButtonElement>(null)
+  const previewButton = useRef<HTMLButtonElement>(null)
+  const editorScroll = useRef(0)
+  const editPosition = useRef<{beatId: string; start: number; end: number; direction: HTMLTextAreaElement['selectionDirection']; scroll: number} | null>(null)
+  const pendingView = useRef<MobileView | null>(null)
   const file = useRef<HTMLInputElement>(null)
   const textarea = useRef<HTMLTextAreaElement>(null)
   const timeRef = useRef(0)
@@ -66,6 +76,29 @@ export function App() {
   const beat = doc.beats.find(b => b.id === selected) ?? doc.beats[0]
   const beatIndex = doc.beats.indexOf(beat)
   const next = doc.beats[beatIndex + 1]
+  const editingOnPhone = mobile && mobileView === 'edit'
+  const compactTime = frame.beat.id === beat.id ? time : beatStart(doc, beatIndex)
+
+  function preserveFieldFocus(event: PointerEvent<HTMLButtonElement>) {
+    if (document.activeElement instanceof HTMLTextAreaElement) event.preventDefault()
+  }
+
+  function switchView(view: MobileView) {
+    if (view === mobileView) return
+    if (view === 'preview') {
+      editorScroll.current = window.scrollY
+      const field = textarea.current
+      if (field) editPosition.current = {
+        beatId: beat.id, start: field.selectionStart, end: field.selectionEnd,
+        direction: field.selectionDirection, scroll: field.scrollTop,
+      }
+    } else {
+      setPlaying(false)
+    }
+    setMenu(null)
+    pendingView.current = view
+    setMobileView(view)
+  }
 
   function seek(value: number) {
     timeRef.current = value
@@ -137,12 +170,41 @@ export function App() {
     id = requestAnimationFrame(tick)
     return () => cancelAnimationFrame(id)
   }, [duration, loop, playing])
+  useEffect(() => {
+    const media = matchMedia(mobileWidth)
+    const update = () => setMobile(media.matches)
+    media.addEventListener('change', update)
+    update()
+    return () => media.removeEventListener('change', update)
+  }, [])
   useLayoutEffect(() => {
+    if (pendingView.current !== mobileView) return
+    pendingView.current = null
+    if (mobileView === 'preview') {
+      previewButton.current?.focus({preventScroll: true})
+      window.scrollTo(0, 0)
+      return
+    }
+    editButton.current?.focus({preventScroll: true})
+    const position = editPosition.current
+    const field = textarea.current
+    if (field && position?.beatId === beat.id) {
+      field.setSelectionRange(position.start, position.end, position.direction)
+      field.scrollTop = position.scroll
+      setSelection([field.selectionStart, field.selectionEnd])
+    }
+    window.scrollTo(0, editorScroll.current)
+  }, [beat.id, mobileView])
+  useLayoutEffect(() => {
+    if (editingOnPhone) return
     const ctx = canvas.current?.getContext('2d')
-    if (!ctx) return
-    const result = renderFrame(ctx, doc, time)
-    setFrameWarning(result.clipped)
-  }, [doc, time])
+    if (ctx) setFrameWarning(renderFrame(ctx, doc, time).clipped)
+  }, [doc, time, editingOnPhone])
+  useLayoutEffect(() => {
+    if (!editingOnPhone) return
+    const ctx = compactCanvas.current?.getContext('2d')
+    if (ctx) renderFrame(ctx, doc, compactTime)
+  }, [doc, compactTime, editingOnPhone])
   useEffect(() => {
     const handle = (event: KeyboardEvent) => {
       if (!(event.metaKey || event.ctrlKey) || !['z', 'y'].includes(event.key.toLowerCase())) return
@@ -226,7 +288,7 @@ export function App() {
     }
   }
   function exportFrame() {
-    const surface = canvas.current
+    const surface = editingOnPhone ? compactCanvas.current : canvas.current
     if (!surface) return
     surface.toBlob(blob => {
       if (blob) download(blob, 'text-lab-frame.png')
@@ -241,6 +303,8 @@ export function App() {
       setNotice('Saved to the collection.')
     } catch { setNotice('Collection storage is unavailable. Export JSON to keep a copy.') }
   }
+
+  const demoBar = <div className="demo-bar"><span>Demos</span><div className="demo-list">{demos.map(demo => <button key={demo.title} className={doc.title === demo.title ? 'current' : ''} onClick={() => load(demo)}>{demo.title}</button>)}</div></div>
 
   return <>
     <header className="app-header">
@@ -271,9 +335,17 @@ export function App() {
       </div>
     </header>
 
-    <main className="workspace">
-      <section className="preview" aria-label="Preview">
-        <div className="pane-heading"><h2><span className="live-dot"/>Preview</h2><span className="format">9:16 <span>·</span> 1080 × 1920</span></div>
+    <nav className="mobile-views" aria-label="Workspace view">
+      <button ref={editButton} aria-pressed={mobileView === 'edit'} aria-controls="composition-editor" onClick={() => switchView('edit')}>Edit</button>
+      <button ref={previewButton} aria-pressed={mobileView === 'preview'} aria-controls="full-preview" onPointerDown={preserveFieldFocus} onClick={() => switchView('preview')}>Preview</button>
+    </nav>
+    <main className="workspace" data-mobile-view={mobileView}>
+      <section id="full-preview" className="preview" aria-label="Preview">
+        <div className="pane-heading">
+          <h2><span className="live-dot"/>Preview</h2>
+          <button className="back-to-edit" onClick={() => switchView('edit')}><ArrowLeft size={16}/> Back to Edit</button>
+          <span className="format">9:16 <span>·</span> 1080 × 1920</span>
+        </div>
         <div className="stage">
           <canvas ref={canvas} width={WIDTH} height={HEIGHT} aria-label={frame.beat.text || 'Empty composition frame'} />
           {frameWarning && <div className="overflow-warning">Text exceeds the frame. Split this beat for a readable layout.</div>}
@@ -290,20 +362,32 @@ export function App() {
           <input className="scrubber" aria-label="Scrub time" type="range" min={0} max={duration} step={0.01} value={Math.min(time, duration)} onChange={event => {
             const value = event.currentTarget.valueAsNumber
             setPlaying(false)
-            setSelected(locate(doc, value).beat.id)
-            setSelection([0, 0])
+            const id = locate(doc, value).beat.id
+            if (id !== beat.id) {
+              editPosition.current = null
+              setSelected(id)
+              setSelection([0, 0])
+            }
             seek(clamp(value, 0, duration))
           }}/>
         </div>
-        <div className="demo-bar"><span>Demos</span><div className="demo-list">{demos.map(demo => <button key={demo.title} className={doc.title === demo.title ? 'current' : ''} onClick={() => load(demo)}>{demo.title}</button>)}</div></div>
+        {!mobile && demoBar}
       </section>
 
-      <section className="editor" aria-label="Editor">
-        <div className="editor-head">
-          <label htmlFor="composition-title">Composition</label>
-          <button className="mutate-button" onClick={() => changeBeat(mutate(beat))}><Shuffle size={16}/> Mutate</button>
+      <section id="composition-editor" className="editor" aria-label="Editor">
+        <div className="composition-head">
+          <div className="editor-head">
+            <label htmlFor="composition-title">Composition</label>
+            <button className="mutate-button" onClick={() => changeBeat(mutate(beat))}><Shuffle size={16}/> Mutate</button>
+          </div>
+          <input id="composition-title" className="composition-title" value={doc.title} maxLength={100} onChange={e => commit({...doc, title: e.currentTarget.value || 'Untitled'})}/>
+          {mobile && <button className="compact-preview" aria-label="Open full Preview" onPointerDown={preserveFieldFocus} onClick={() => switchView('preview')}>
+            <span><span className="compact-label"><span className="live-dot"/><span className="compact-beat">Beat {pad(beatIndex + 1)} ·</span> {seconds(compactTime)}</span>
+              <span className="open-preview-label">Open full Preview <Maximize2 size={14}/></span>
+            </span>
+            <canvas ref={compactCanvas} width={WIDTH} height={HEIGHT} aria-hidden="true"/>
+          </button>}
         </div>
-        <input id="composition-title" className="composition-title" value={doc.title} maxLength={100} onChange={e => commit({...doc, title: e.currentTarget.value || 'Untitled'})}/>
         <div className="editor-section beats-section">
           <div className="section-heading"><h2>Beats <span className="count">{doc.beats.length} / 5</span></h2><button className="small-button" onClick={addBeat} disabled={doc.beats.length >= 5}><Plus size={15}/> Add beat</button></div>
           <div className="beat-list">{doc.beats.map((item, index) => <button key={item.id} className={'beat-card ' + (item.id === beat.id ? 'selected' : '')} onClick={() => selectBeat(index)} aria-pressed={item.id === beat.id}>
@@ -331,6 +415,7 @@ export function App() {
           <button className="source-toggle" aria-expanded={showSource} onClick={() => setShowSource(!showSource)}><ChevronDown size={13}/> Original text</button>
           {showSource && <textarea aria-label="Original text" value={doc.originalText} maxLength={25000} onChange={e => commit({...doc, originalText: e.currentTarget.value})}/>}
         </div>
+        {mobile && demoBar}
         <div className="editor-section">
           <div className="section-heading"><h2>Presentation</h2></div>
           <Choices label="Presentation mode" values={modes} value={beat.mode} set={mode => changeBeat({mode})}/>
