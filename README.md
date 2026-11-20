@@ -13,13 +13,14 @@ npm run dev
 
 Open the URL printed by Vite. Run `npm run build` to type-check and generate the static site in `dist/`. For hosting on Vercel, use the Vite preset and the `dist` output directory. The app needs no backend, credentials, or external font requests.
 
-## Work with a composition
+## Beat Lab and Compose
 
-- Paste text into the selected beat. The separate Original text field preserves the source passage. Move, delete, add, or split beats at the text cursor.
-- Select text and apply Strong, Subtle, or Anchor. For Persist, mark the same passage as Anchor in adjacent beats and explicitly pair the ranges in Timing.
-- Switch between Reading, Focus, Reveal, and Transform. Use the font, palette, spacing, and motion controls to adjust the composition. Mutate varies alignment, size, and motion intensity on the selected beat. Use Undo to return to an earlier version.
-- Play, pause, restart, loop, or scrub. The previous and next controls jump to beat boundaries. The canvas shrinks oversized type to fit and warns when even the minimum size overflows.
-- Keep saves an independent browser-local snapshot. The working draft autosaves separately. Use Export for portable JSON or a 1080 × 1920 PNG of the current frame.
+- In Beat Lab, paste text into the selected beat. The separate Original text field preserves the source passage. Move, delete, add, or split beats at the text cursor.
+- Select text and apply Strong, Subtle, or Anchor. For Persist, mark the same passage as Anchor in adjacent beats and explicitly pair the ranges under Transition.
+- The wide Live Preview loops the selected Beat, or the outgoing and incoming beats in Transition mode. Selecting Scatter, Echo, or Wave restarts the loop. Intensity redraws the current frame while you drag. Mutate varies alignment, type size, and motion intensity.
+- In Compose, choose a Beat and adjust its vertical position, scale, alignment, width, and duration on the 9:16 canvas. Overlap starts the next Beat early and shortens the total duration. Persist can carry a linked anchor with overlap set to zero. Reels safe-area guides stay on screen only.
+- In Compose, play, pause, restart, loop, or scrub. The previous and next controls jump to beat boundaries. The canvas shrinks oversized type to fit and warns when even the minimum size overflows.
+- Keep saves an independent browser-local snapshot. The working draft autosaves separately. Use Export for portable JSON or a 1080 × 1920 PNG of the current Compose frame.
 
 ## Video export
 

@@ -1,6 +1,10 @@
 import {segments, type Beat, type Emphasis} from './model'
 export const WIDTH = 1080
 export const HEIGHT = 1920
+export const LAB_HEIGHT = 420
+export const reel = {height: HEIGHT, top: 220, bottom: 1690, fit: 1350, minBaseline: 285, unit: 1}
+export const lab = {height: LAB_HEIGHT, top: 0, bottom: LAB_HEIGHT, fit: 340, minBaseline: 42, unit: 0.72}
+export type Surface = typeof reel
 const families = {Serif: 'Georgia, "Times New Roman", serif', Sans: 'Arial, sans-serif', Mono: '"Courier New", monospace'}
 export const font = (beat: Beat, size: number, weight: number) =>
   `${weight} ${size}px ${families[beat.typography.font]}`
@@ -8,9 +12,9 @@ type Piece = {text: string; start: number; end: number; width: number; weight: n
 export type Glyph = Piece & {x: number; y: number; line: number}
 export type Layout = {glyphs: Glyph[]; size: number; lines: number; words: number; phrases: number; clipped: boolean}
 
-function build(ctx: CanvasRenderingContext2D, beat: Beat, size: number): Layout {
+function build(ctx: CanvasRenderingContext2D, beat: Beat, size: number, surface: Surface): Layout {
   const t = beat.typography
-  const limit = WIDTH * t.width / 100
+  const limit = WIDTH * (surface === lab ? 0.88 : t.width / 100)
   let word = 0
   let phrase = 0
   const lines: Piece[][] = [[]]
@@ -67,7 +71,12 @@ function build(ctx: CanvasRenderingContext2D, beat: Beat, size: number): Layout 
   while (lines.length > 1 && !lines.at(-1)?.length) lines.pop()
   const step = size * t.leading
   const height = (lines.length - 1) * step + size
-  const first = Math.max(285, (HEIGHT - height) / 2 + size * 0.82)
+  const center = (surface.height - height) / 2 + size * 0.82
+  const top = Math.max(surface.minBaseline, surface.top + size * 0.96)
+  const bottom = Math.max(top, surface.bottom - 48 * surface.unit - (height - size))
+  const position = surface === reel ? (beat.placement?.position ?? 0) / 100 : 0
+  const baseline = Math.max(top, Math.min(bottom, center))
+  const first = baseline + Math.abs(position) * ((position < 0 ? top : bottom) - baseline)
   const glyphs = lines.flatMap((line, index) => {
     const width = line.reduce((sum, p) => sum + p.width, 0)
     let x = (WIDTH - limit) / 2 + (t.align === 'Center' ? (limit - width) / 2 : t.align === 'Right' ? limit - width : 0)
@@ -77,16 +86,18 @@ function build(ctx: CanvasRenderingContext2D, beat: Beat, size: number): Layout 
       return piece.text ? [glyph] : []
     })
   })
-  return {glyphs, size, lines: lines.length, words: word, phrases: Math.max(0, (glyphs.at(-1)?.phrase ?? -1) + 1), clipped: height > 1350}
+  return {glyphs, size, lines: lines.length, words: word, phrases: Math.max(0, (glyphs.at(-1)?.phrase ?? -1) + 1), clipped: height > surface.fit}
 }
-export function createLayout(ctx: CanvasRenderingContext2D, beat: Beat) {
-  const layout = build(ctx, beat, beat.typography.size)
+export function createLayout(ctx: CanvasRenderingContext2D, beat: Beat, surface: Surface) {
+  const scale = surface === reel ? (beat.placement?.scale ?? 100) / 100 : 1
+  const size = beat.typography.size * scale * surface.unit
+  const layout = build(ctx, beat, size, surface)
   if (!layout.clipped) return layout
-  let best = build(ctx, beat, 30)
+  let best = build(ctx, beat, Math.min(size, 30 * surface.unit), surface)
   if (best.clipped) return best
-  let upper = beat.typography.size
+  let upper = size
   while (upper - best.size > 2) {
-    const candidate = build(ctx, beat, Math.floor((upper + best.size) / 2))
+    const candidate = build(ctx, beat, Math.floor((upper + best.size) / 2), surface)
     if (candidate.clipped) upper = candidate.size
     else best = candidate
   }

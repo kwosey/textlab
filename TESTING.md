@@ -13,8 +13,10 @@ The tests cover Unicode range validation and edits, beat ordering and history, m
 
 For visual review, open all three demos at desktop and phone widths. Inspect the Russian reveal at several positions and scrub the end of the first beat of The Returning Tide to see the anchor carry into the second beat. In the editor, try a one-word beat, several emphasis marks, and a paragraph with unbroken words, explicit newlines, and combining characters. Judge the pacing, legibility, and emphasis separately from the automated assertions.
 
-## iPhone editing
+## Mobile review
 
-Open Edit at 320, 375, 390, and 428 CSS px. Paste several paragraphs in Russian, select a word, and scroll both the field and the page. Open Preview, scrub, then return to Edit. Check that the draft, selection and scroll positions survive and that the selected Beat follows deliberate beat navigation. Returning to Edit pauses playback at the current time.
+At 320, 375, 390, and 428 CSS px, open Beat Lab and paste Russian text. Scroll to Transform and select Wave. With the canvas still visible, drag Intensity from 20 to 90 and verify movement before lifting your finger. Switch to Echo, edit a word, assign an emphasis, and press Mutate. Use Transition to watch Replace, Persist, and Transform. In The Returning Tide, verify that the linked word stays visible between beats.
 
-The automated mobile tests exercise a reduced viewport and touch input in Chromium. On a physical iPhone, repeat the round trip with Safari’s software keyboard, including text selection handles, keyboard dismissal and the home-indicator safe area.
+In Compose, move a text block and adjust its scale, alignment, width, duration, and overlap. Check that total time changes, the two paragraphs trade places clearly, and PNG excludes guides. Scrub and return to Beat Lab, then reopen Compose and check its playhead. Verify both workspaces on desktop.
+
+Playwright checks pixels, pointer movement before release, document compatibility, exports, scroll and selection restoration, and the reduced viewport in Chromium. Repeat with Safari’s software keyboard and selection handles on a physical iPhone.

@@ -4,7 +4,7 @@ import {decode, editText, linkedAnchors} from '../src/model'
 const example = JSON.parse(await readFile(new URL('../examples/a-quiet-interval.json', import.meta.url), 'utf8'))
 
 const textField = (page: Page) => page.locator('#beat-text')
-const pixels = (page: Page) => page.locator('canvas').evaluate(node => (node as HTMLCanvasElement).toDataURL())
+const pixels = (page: Page) => page.locator('#full-preview canvas').evaluate(node => (node as HTMLCanvasElement).toDataURL())
 async function scrub(page: Page, value: number) {
   await page.getByRole('slider', {name: 'Scrub time'}).evaluate((node, seconds) => {
     Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value')!.set!.call(node, String(seconds))
@@ -55,6 +55,7 @@ test('edits, marks, mutates, reorders and restores beats', async ({page}) => {
 test('plays, pauses, restarts and reproduces a frame across seek orders', async ({page}) => {
   await page.goto('/')
   await page.getByRole('button', {name: 'The Returning Tide'}).click()
+  await page.getByRole('button', {name: 'Compose', exact: true}).click()
   await scrub(page, 5.6)
   const transition = await pixels(page)
   await scrub(page, 6)
@@ -103,13 +104,13 @@ test('mobile has no page overflow with all demos, long words or very short text'
   for (const title of ['A Quiet Interval', 'После дождя', 'The Returning Tide']) {
     await page.getByRole('button', {name: title, exact: true}).click()
     await expect(page.locator('#composition-title')).toHaveValue(title)
-    await expect(page.locator('.compact-preview canvas')).toBeVisible()
+    await expect(page.locator('.live-preview canvas')).toBeVisible()
     expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBe(375)
   }
   await textField(page).fill(('Оченьдлинноеслово'.repeat(12) + ' 👩🏽‍🚀\n').repeat(12))
-  await expect(page.locator('.compact-preview canvas')).toBeVisible()
+  await expect(page.locator('.live-preview canvas')).toBeVisible()
   expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBe(375)
   await textField(page).fill('Да.')
-  await page.getByRole('button', {name: 'Open full Preview'}).click()
+  await page.getByRole('button', {name: 'Compose', exact: true}).click()
   await expect(page.locator('#full-preview canvas')).toHaveAttribute('aria-label', 'Да.')
 })
