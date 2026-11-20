@@ -25,3 +25,7 @@ The word picker uses word segmentation and the model validates grapheme boundari
 Both canvases paint paper, background, shapes, reel labels (Compose), then lettering. During handoffs the two scene layers crossfade and the renderer resolves Persist in transformed coordinates. Each shape belongs to its Beat. The Lab and reel use the same normalized scene positions and time functions while providing different text layouts.
 
 Scene edits reuse text layout when its inputs are unchanged. Background paths have a bounded draw cost. Grain repeats a small seeded tile kept in a bounded cache per canvas context. Type treatments use glyph bounds cached per measured layout.
+
+Explicit Reveal defines opacity in elapsed local seconds. The clock and Hold calculation share transition spans with Compose. Beat Lab plays explicit Reveal and the end-of-Beat preview at real speed.
+
+Persist omits linked anchors from normal transition lettering. Matching single-run Transform lettering travels as one glyph, while mixed styles use the native source and destination runs in one interpolated footprint. A moving clip boundary hands off the style without stacked glyphs. The incoming renderer keeps carried Reveal lettering visible across the boundary.

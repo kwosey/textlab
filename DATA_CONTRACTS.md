@@ -25,6 +25,7 @@ Use the [complete working document](examples/a-quiet-interval.json) as a templat
 | `wordStyles` | Optional ordered, nonoverlapping visual ranges. See below |
 | `emphasis` | Up to 100 ordered, nonoverlapping ranges |
 | `placement` | Optional object with `position`, `scale`, and `overlap` |
+| `timing` | Optional Reveal timing object described below |
 | `scene` | Optional Visual Scene object described below |
 | `transition` | Object with `type` and optional paired `from` and `to` |
 
@@ -75,3 +76,13 @@ The optional `scene` object accepts only `background`, `shapes`, and `typeMotion
 Omitted `shapes` is equivalent to an empty array; at most three entries are allowed. Shapes render in array order behind lettering. Size refers to the diameter of a circle or the width of a line or rectangle. Tone refers to the current theme. Punch scales and settles, Slide enters from a bounded offset, and Oversized expands a static block. Headline cropping is allowed only for blocks of up to four words, two measured lines, and 27 UTF-16 units; longer blocks use a scale capped at 1.16 and fitted to the available area.
 
 Background and shape layers crossfade over the existing handoff window. The same document seed and timestamps determine motion on both surfaces. Persist carries the matching Anchor between typographic positions; shapes and backgrounds end with their own Beat. Overlap, Word Styling, and the PNG contract are unchanged.
+
+## Reveal timing
+
+`"timing": {"revealDuration": 1.5}` is optional on a Beat. `revealDuration` is the only accepted key. It must be a finite number in seconds from 0.1 through the Beat's own `duration`, inclusive. The value is used in Reveal mode and retained when modes are switched. Import rejects invalid values. Shortening a Beat in Compose reduces a stored duration to the new Beat duration if necessary.
+
+Without timing, Reveal uses the existing reading estimate and entrance schedule. With timing, entrances run from local time zero and use the existing smoothstep opacity curve. A single group fades over the full window. Multiple groups have evenly spaced starts from zero to `revealDuration - entrance`, with `entrance = min(0.24, revealDuration / groupCount)`. At the deadline every group has full Reveal opacity. Beat Lab loops the whole Beat in real seconds for explicit Reveal. Legacy Beat preview still compresses long Beats for editing.
+
+Overlap advances the local clock of the incoming Beat, while the outgoing fade starts at the outgoing duration minus the transition span. These composition fades are independent of Reveal opacity. The displayed solo Hold is the time between the later of the Reveal deadline and the incoming overlap end, and the start of the outgoing transition. It is zero when those intervals intersect. To see the whole phrase at full contrast before a handoff, set Reveal to finish before the outgoing transition. A carried Anchor in an incoming Reveal is visible from the handoff onward. The single-Beat Lab view shows the Beat in isolation. Use Transition to inspect the carry from its preceding Beat.
+
+A complete [4.5-second timing document](examples/reading-rhythm.json) has a 1.5-second Reveal and a 3-second Hold. The [Persist example](examples/persist-gaze.json) uses different layouts, fonts, colors, weights and scene treatments for the same linked word.

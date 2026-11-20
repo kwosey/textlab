@@ -11,3 +11,6 @@
 
 - Store visual Scenes directly on Beats as optional v1 data. Keep shapes behind lettering and crossfade both scene layers during an existing Beat handoff.
 - Use theme-relative colors and bounded opacity for contrast. Oversized permits edge cropping for brief headlines and uses a fitted scale for longer copy. Large type motion damps background, shape, and per-word motion.
+
+- Keep optional Reveal timing in v1. Let Hold derive from the existing duration and transition schedule. Preserve the legacy render path when timing is absent.
+- Preserve native text metrics at Persist endpoints. Use complementary horizontal clips for a mixed-font or mixed-style handoff. A valid carried Anchor starts visible in an incoming Reveal.
