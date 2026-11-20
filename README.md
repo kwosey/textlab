@@ -32,6 +32,10 @@ Open **Direction** in Beat Lab to frame type and edit the ordered Cue list. **Pr
 
 ## Video export
 
-A future exporter can sample the current Canvas renderer at fixed timestamps such as `frameIndex / 30` and feed the resulting frames to WebCodecs with a container muxer, or to a local FFmpeg workflow. Use the same font files and renderer for the entire export to avoid platform-dependent text layout. This release exports PNG and JSON.
+Choose **Export → Export video** to render the entire composition locally at 1080 × 1920 and 30 fps with no audio. Progress counts encoded and muxed frames. Use **Cancel** to stop the job. Once ready, tap **Download video**. On iPhone, look in Downloads in Files, or tap **Share file → Save to Files** when the browser offers file sharing. Open the saved file in the system player. The editor cannot write directly to Photos.
+
+The browser checks H.264/MP4 first, then VP8 or VP9/WebM. Both are actual encoded files with matching MIME and extension. Instagram may require MP4. If the browser has no qualified encoder, export JSON and reopen it in a current Safari or Chromium browser on a device with encoder support. Export needs HTTPS or localhost for WebCodecs and runs without uploading the document. Rendering can take several seconds or longer on mobile.
+
+See the [video verification fixture](examples/video-export-check.json) for a short composition that combines Cues, intentional crop, Reveal/Hold, backgrounds, shapes, all three impact treatments and a styled Persist Anchor with overlap.
 
 See [Architecture](ARCHITECTURE.md), [Data contracts](DATA_CONTRACTS.md), [Testing](TESTING.md), and [Decisions](DECISIONS.md).

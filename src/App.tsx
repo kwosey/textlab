@@ -1,3 +1,4 @@
+import {useVideoExport, VideoExportPanel} from './VideoExport'
 import {DirectionEditor, ImpactEditor} from './DirectionEditor'
 import {editorialPrompt} from './editorial-prompt'
 import {validCues} from './direction'
@@ -49,6 +50,7 @@ export function App() {
   const [playing, setPlaying] = useState(false)
   const [loop, setLoop] = useState(false)
   const [menu, setMenu] = useState<'files' | 'collection' | null>(null)
+  const video = useVideoExport()
   const [notice, setNotice] = useState(initial.damaged ? 'The draft could not be read. Your saved collection is still available.' : '')
   const [frameWarning, setFrameWarning] = useState(false)
   const [selection, setSelection] = useState([0, 0])
@@ -362,6 +364,11 @@ export function App() {
         <div className="menu-anchor">
           <button ref={exportButton} className="toolbar-button export-button" onClick={() => setMenu(menu === 'files' ? null : 'files')} aria-expanded={menu === 'files'}><Download size={16}/><span>Export</span><ChevronDown size={13}/></button>
           {menu === 'files' && <div className="popover">
+            <button disabled={video.busy} onClick={() => {
+              setMenu(null)
+              exportButton.current?.focus()
+              void video.start(doc)
+            }}><Download size={16}/> Export video</button>
             <button onClick={exportFrame}><ImageDown size={16}/> Export current PNG</button>
             <button onClick={() => { download(new Blob([JSON.stringify(doc, null, 2)], {type: 'application/json'}), 'text-lab.json'); setMenu(null) }}><FileJson size={16}/> Export JSON</button>
             <button onClick={() => {file.current?.click(); setMenu(null)}}><Upload size={16}/> Import JSON</button>
@@ -578,6 +585,7 @@ export function App() {
         </div>
       </section>
     </main>
+    <VideoExportPanel {...video}/>
     {notice && <div className="toast" role="status">{notice}<IconButton label="Dismiss message" action={() => setNotice('')}><X size={16}/></IconButton></div>}
   </div>
 }

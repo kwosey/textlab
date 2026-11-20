@@ -48,3 +48,11 @@ Automated tests sample actual pixels through the gaze handoff at 60 Hz and use a
 Open Director's Cut and inspect the opening title crop, expanding circle, flash to the line, quiet Beat, and returning circle. In Direction, change a cue, tap **Preview cue**, and compare **9:16** against Compose at the same time. Scrub backward and compare the same frame. Check all visual handoffs with a linked Anchor.
 
 The tests cover schema rejection, ordered cues, frame determinism, exact 9:16 proofing, JSON round-trip, and copy/error feedback with a real Chromium clipboard. On a physical iPhone, confirm clipboard behavior under HTTPS, the keyboard and sticky preview while editing Cues, crop alignment, and visual pacing.
+
+## Video export
+
+Import [the verification fixture](examples/video-export-check.json). Use **Export → Export video** from either workspace. Confirm frame count and duration, save the result, and open it in a video player. It should contain only the 9:16 reel rendering and no audio. Director's Cut exercises a longer export. Try starting while parked at a different playhead, cancelling, then exporting again. The draft and selected Beat should retain their state.
+
+Playwright uses native Chromium encoder output. It checks MP4/WebM signatures, codec, dimensions, no audio, duration, each presentation timestamp, and decodes frames across Cues and the four handoffs. Those frames are compared with independently rendered reference images. Tests also disable AVC to exercise WebM, inject encoder failure, simulate slow encoding, check cancellation/queue limits, and check the panel at four mobile widths and desktop. An installed Chromium should have at least one functioning WebCodecs video encoder and decoder.
+
+On a physical iPhone open the app over HTTPS. Export Director's Cut, watch progress, save to Files or use Share file, then play the saved file full screen. Verify length, scene timing, and Persist. If it is MP4, try importing it into Instagram. If it is WebM, use another device/browser to re-export MP4. Repeat with 20–30 seconds, cancel partway, then export again. Desktop browser tests do not establish iPhone acceptance.
