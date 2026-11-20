@@ -8,3 +8,6 @@
 - Defer audio, video encoding, cloud sync, per-field locks, and a multi-track timeline. Fonts and ligatures can vary across platforms; the initial scope is horizontal Russian and English text.
 - Keep the v1 schema and local storage keys. Compose adds optional placement and safe-area preferences. Overlap schedules neighboring Beats, while Persist carries a linked anchor.
 - Keep visual styles separate from semantic roles. Suggest exact Anchor matches and wait for confirmation before storing a link.
+
+- Store visual Scenes directly on Beats as optional v1 data. Keep shapes behind lettering and crossfade both scene layers during an existing Beat handoff.
+- Use theme-relative colors and bounded opacity for contrast. Oversized permits edge cropping for brief headlines and uses a fitted scale for longer copy. Large type motion damps background, shape, and per-word motion.

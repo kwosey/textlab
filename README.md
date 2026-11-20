@@ -1,6 +1,6 @@
 # Text Lab
 
-Text Lab is a visual reading playground. Arrange a passage into beats, direct the reader’s attention with emphasis and motion, and preview the composition on a 9:16 canvas. Three original compositions open directly in the editor.
+Text Lab is a visual reading playground. Arrange a passage into beats, direct the reader’s attention with emphasis and motion, and preview the composition on a 9:16 canvas. Four demos open directly in the editor, including the 24.7-second [Visual Scenes meta demo](examples/visual-scenes-meta-demo.json).
 
 ## Run locally
 
@@ -18,6 +18,7 @@ Open the URL printed by Vite. Run `npm run build` to type-check and generate the
 - In Beat Lab, paste text into the selected beat. The separate Original text field preserves the source passage. Move, delete, add, or split beats at the text cursor.
 - Use **Style words** to tap a word or select two endpoints with Phrase. Apply a theme color, weight, italic, or Marker and inspect it live. Roles still work independently of appearance. Under Persist, confirm a suggested match or pick the same passage directly in both Beats.
 - The wide Live Preview loops the selected Beat, or the outgoing and incoming beats in Transition mode. Selecting Scatter, Echo, or Wave restarts the loop. Intensity redraws the current frame while you drag. Mutate varies alignment, type size, and motion intensity.
+- In Beat Lab, open **Scene** to pick a background, add up to three shapes behind the text, or direct the whole text block with Punch, Slide, or Oversized. The same Scene accompanies the Beat into Compose and PNG. Use **Reset scene** to restore the original treatment.
 - In Compose, choose a Beat and adjust its vertical position, scale, alignment, width, and duration on the 9:16 canvas. Overlap starts the next Beat early and shortens the total duration. Persist can carry a linked anchor with overlap set to zero. Reels safe-area guides stay on screen only.
 - In Compose, play, pause, restart, loop, or scrub. The previous and next controls jump to beat boundaries. The canvas shrinks oversized type to fit and warns when even the minimum size overflows.
 - Keep saves an independent browser-local snapshot. The working draft autosaves separately. Use Export for portable JSON or a 1080 × 1920 PNG of the current Compose frame.

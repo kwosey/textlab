@@ -1,0 +1,322 @@
+{
+  "documentVersion": 1,
+  "title": "Text Lab · Visual Scenes",
+  "originalText": "Это\nText Lab.\n\nЗдесь слова\nпоявляются\nпо-разному.\n\nЦвет.\nФорма.\nДвижение.\n\nСлова меняются.\nСмысл остаётся.\n\nСобери\nсвою историю.",
+  "theme": "Night",
+  "seed": 2845309,
+  "beats": [
+    {
+      "id": "scene-title",
+      "text": "Это\nText Lab.",
+      "duration": 4.3,
+      "mode": "Reading",
+      "typography": {
+        "font": "Sans",
+        "size": 150,
+        "weight": 700,
+        "leading": 1.06,
+        "width": 90,
+        "align": "Center",
+        "bionic": false
+      },
+      "emphasis": [],
+      "effect": "Wave",
+      "reveal": "Words",
+      "intensity": 45,
+      "placement": {
+        "position": 0,
+        "overlap": 0
+      },
+      "transition": {
+        "type": "Transform"
+      },
+      "scene": {
+        "background": {
+          "kind": "Gradient Drift",
+          "intensity": 82,
+          "speed": 0.63,
+          "scale": 110
+        },
+        "shapes": [
+          {
+            "kind": "Rectangle",
+            "tone": "Cool",
+            "size": 86,
+            "x": 50,
+            "y": 50
+          },
+          {
+            "kind": "Line",
+            "tone": "Accent",
+            "size": 25,
+            "x": 50,
+            "y": 72,
+            "motion": "Expand"
+          }
+        ],
+        "typeMotion": {
+          "kind": "Oversized",
+          "amount": 47
+        }
+      }
+    },
+    {
+      "id": "scene-words",
+      "text": "Здесь слова\nпоявляются\nпо-разному.",
+      "duration": 5.1,
+      "mode": "Reveal",
+      "typography": {
+        "font": "Sans",
+        "size": 118,
+        "weight": 700,
+        "leading": 1.06,
+        "width": 90,
+        "align": "Left",
+        "bionic": false
+      },
+      "emphasis": [
+        {
+          "id": "scene-words-emphasis",
+          "start": 23,
+          "end": 33,
+          "role": "Strong"
+        }
+      ],
+      "effect": "Wave",
+      "reveal": "Words",
+      "intensity": 45,
+      "placement": {
+        "position": -28,
+        "overlap": 0
+      },
+      "transition": {
+        "type": "Replace"
+      },
+      "scene": {
+        "background": {
+          "kind": "Gradient Drift",
+          "intensity": 42,
+          "scale": 95,
+          "speed": 0.7
+        },
+        "shapes": [
+          {
+            "kind": "Line",
+            "tone": "Accent",
+            "size": 32,
+            "x": 24,
+            "y": 67,
+            "motion": "Expand",
+            "energy": 65
+          }
+        ]
+      },
+      "wordStyles": [
+        {
+          "start": 23,
+          "end": 33,
+          "style": {
+            "marker": true,
+            "color": "Accent"
+          }
+        }
+      ]
+    },
+    {
+      "id": "scene-form",
+      "text": "Цвет.\nФорма.\nДвижение.",
+      "duration": 5.4,
+      "mode": "Reading",
+      "typography": {
+        "font": "Sans",
+        "size": 138,
+        "weight": 700,
+        "leading": 1.06,
+        "width": 90,
+        "align": "Center",
+        "bionic": false
+      },
+      "emphasis": [],
+      "effect": "Wave",
+      "reveal": "Words",
+      "intensity": 45,
+      "placement": {
+        "position": -5,
+        "overlap": 0.4
+      },
+      "transition": {
+        "type": "Transform"
+      },
+      "scene": {
+        "background": {
+          "kind": "Flow",
+          "intensity": 95,
+          "speed": 0.84,
+          "scale": 105
+        },
+        "shapes": [
+          {
+            "kind": "Circle",
+            "motion": "Expand",
+            "tone": "Cool",
+            "x": 55,
+            "y": 48,
+            "size": 81,
+            "energy": 78
+          },
+          {
+            "kind": "Line",
+            "tone": "Accent",
+            "x": 72,
+            "y": 74,
+            "size": 27
+          }
+        ],
+        "typeMotion": {
+          "kind": "Punch",
+          "amount": 71
+        }
+      }
+    },
+    {
+      "id": "scene-meaning",
+      "text": "Слова меняются.\nСмысл остаётся.",
+      "duration": 5.8,
+      "mode": "Reading",
+      "typography": {
+        "font": "Sans",
+        "size": 101,
+        "weight": 500,
+        "leading": 1.06,
+        "width": 90,
+        "align": "Left",
+        "bionic": false
+      },
+      "emphasis": [
+        {
+          "id": "scene-meaning-emphasis",
+          "start": 16,
+          "end": 21,
+          "role": "Strong"
+        }
+      ],
+      "effect": "Wave",
+      "reveal": "Words",
+      "intensity": 45,
+      "placement": {
+        "position": 31,
+        "overlap": 0.3
+      },
+      "transition": {
+        "type": "Replace"
+      },
+      "scene": {
+        "background": {
+          "kind": "Grain",
+          "intensity": 66,
+          "speed": 0.47,
+          "scale": 115
+        },
+        "shapes": [
+          {
+            "kind": "Rectangle",
+            "motion": "Drift",
+            "tone": "Cool",
+            "x": 55,
+            "y": 65,
+            "size": 78,
+            "energy": 48
+          }
+        ],
+        "typeMotion": {
+          "kind": "Slide",
+          "amount": 84
+        }
+      },
+      "wordStyles": [
+        {
+          "start": 16,
+          "end": 21,
+          "style": {
+            "italic": true,
+            "color": "Cool"
+          }
+        }
+      ]
+    },
+    {
+      "id": "scene-final",
+      "text": "Собери\nсвою историю.",
+      "duration": 4.8,
+      "mode": "Reading",
+      "typography": {
+        "font": "Sans",
+        "size": 142,
+        "weight": 700,
+        "leading": 1.06,
+        "width": 90,
+        "align": "Center",
+        "bionic": false
+      },
+      "emphasis": [
+        {
+          "id": "scene-final-emphasis",
+          "start": 12,
+          "end": 19,
+          "role": "Strong"
+        }
+      ],
+      "effect": "Wave",
+      "reveal": "Words",
+      "intensity": 45,
+      "placement": {
+        "position": 0,
+        "overlap": 0
+      },
+      "transition": {
+        "type": "Replace"
+      },
+      "scene": {
+        "background": {
+          "kind": "Gradient Drift",
+          "intensity": 70,
+          "speed": 0.51,
+          "scale": 132
+        },
+        "shapes": [
+          {
+            "kind": "Circle",
+            "motion": "Hold",
+            "tone": "Accent",
+            "x": 58,
+            "y": 43,
+            "size": 83
+          },
+          {
+            "kind": "Line",
+            "motion": "Expand",
+            "tone": "Cool",
+            "x": 50,
+            "y": 71,
+            "size": 48,
+            "energy": 45
+          }
+        ],
+        "typeMotion": {
+          "kind": "Punch",
+          "amount": 49
+        }
+      },
+      "wordStyles": [
+        {
+          "start": 12,
+          "end": 19,
+          "style": {
+            "weight": "Bold",
+            "color": "Accent"
+          }
+        }
+      ]
+    }
+  ]
+}
