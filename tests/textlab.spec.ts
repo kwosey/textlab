@@ -103,12 +103,13 @@ test('mobile has no page overflow with all demos, long words or very short text'
   for (const title of ['A Quiet Interval', 'После дождя', 'The Returning Tide']) {
     await page.getByRole('button', {name: title, exact: true}).click()
     await expect(page.locator('#composition-title')).toHaveValue(title)
-    await expect(page.locator('canvas')).toBeVisible()
+    await expect(page.locator('.compact-preview canvas')).toBeVisible()
     expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBe(375)
   }
   await textField(page).fill(('Оченьдлинноеслово'.repeat(12) + ' 👩🏽‍🚀\n').repeat(12))
-  await expect(page.locator('canvas')).toBeVisible()
+  await expect(page.locator('.compact-preview canvas')).toBeVisible()
   expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBe(375)
   await textField(page).fill('Да.')
-  await expect(page.locator('canvas')).toHaveAttribute('aria-label', 'Да.')
+  await page.getByRole('button', {name: 'Open full Preview'}).click()
+  await expect(page.locator('#full-preview canvas')).toHaveAttribute('aria-label', 'Да.')
 })
