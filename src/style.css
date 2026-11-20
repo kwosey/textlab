@@ -322,3 +322,20 @@ textarea::selection { background: var(--accent); color: #2f211c; }
   [data-short-viewport=true] .live-preview .vertical-proof canvas { height: 84px; }
   .cue .small-button { min-height: 38px; }
 }
+
+.video-export-panel {
+  position: fixed; z-index: 12; inset: auto 12px max(12px, env(safe-area-inset-bottom)) auto;
+  width: min(375px, calc(100% - 24px)); padding: 13px;
+  background: #262123; border: 1px solid #5d4841; border-radius: 10px;
+  color: #f7eae2; box-shadow: 0 8px 28px #0009;
+}
+.video-export-panel header, .video-export-actions { display: flex; align-items: center; gap: 8px; }
+.video-export-panel header { justify-content: space-between; }
+.video-export-panel p { margin: 8px 0 0; font-size: 12px; line-height: 1.4; overflow-wrap: anywhere; }
+.video-export-panel progress { width: 100%; margin-top: 10px; accent-color: var(--accent); }
+.video-export-actions { flex-wrap: wrap; margin-top: 10px; }
+.video-export-actions a { text-decoration: none; }
+@media (max-width: 760px) {
+  .video-export-panel button, .video-export-panel a { min-height: 40px; }
+}
+.video-export-actions .toolbar-button { width: auto; padding-inline: 12px; }

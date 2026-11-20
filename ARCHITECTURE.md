@@ -33,3 +33,11 @@ Persist omits linked anchors from normal transition lettering. Matching single-r
 `direction.ts` validates and evaluates independent cue channels using only Beat-local time and ordered document data. The shared renderer applies cue opacity, scale and position before compositing and keeps the existing Anchor interpolation. Visual impact is a layer treatment within the existing handoff span. Beat Lab can use the Compose viewport and timeline directly for crop proofing.
 
 The clipboard action reads one literal prompt from `editorial-prompt.ts` and never writes the document.
+
+## Local video pipeline
+
+`VideoExport.tsx` owns the export job, progress, cancellation and the ready file URL as transient UI state. The action captures the immutable document. It neither consults nor changes the preview playhead. The export module loads on demand.
+
+`video-export.ts` waits for document fonts and calls the same `renderFrame` on a detached 1080 × 1920 canvas for every `i / 30` where `0 ≤ i < ceil(totalTime(doc) × 30)`. Timestamps are rounded independently to microseconds. Sample duration is the difference to the next rounded timestamp, or the composition end for the last frame. There is no terminal sample at the end timestamp. WebM may round timestamps further to milliseconds. The display loop, safe-area guides, editor controls and warnings never enter this canvas. Reel labels drawn by the renderer remain.
+
+WebCodecs receives at most eight pending frames per batch. Each VideoFrame is closed immediately after submission. Between pairs the renderer yields to the UI. It flushes the batch and checks timestamp membership and completeness before awaiting the muxer for each packet. Mediabunny writes H.264 into MP4 or VP8/VP9 into WebM. The browser keeps the compressed output in memory, capped at 192 MiB of encoded packets plus muxer, buffer and final Blob overhead. Raw frames are never accumulated for the full composition. Cancel closes the encoder, stops frame submission, cancels the muxer, and releases the detached canvas. The output object URL remains available for explicit save/share until dismissal, replacement, or unmount.
