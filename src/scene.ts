@@ -37,6 +37,6 @@ export function validScene(scene: unknown): scene is Scene {
     fields(shape, ['kind', 'motion', 'tone', 'x', 'y', 'size', 'energy']) &&
     member(shape.kind, shapes) && (shape.motion === undefined || member(shape.motion, shapeMotions)) &&
     (shape.tone === undefined || member(shape.tone, sceneTones)) &&
-    optionalRange(shape.x, 0, 100) && optionalRange(shape.y, 0, 100) &&
-    optionalRange(shape.size, 8, 90) && optionalRange(shape.energy, 0, 100))
+    optionalRange(shape.x, -100, 200) && optionalRange(shape.y, -100, 200) &&
+    optionalRange(shape.size, 8, 240) && optionalRange(shape.energy, 0, 100))
 }

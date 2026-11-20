@@ -1,3 +1,4 @@
+import {validCues, validFraming, validImpact, type Cue, type Framing, type Impact} from './direction'
 import {validScene, type Scene} from './scene'
 
 export const modes = ['Reading', 'Focus', 'Reveal', 'Transform'] as const
@@ -32,6 +33,9 @@ export type Beat = {
   reveal: typeof reveals[number]; intensity: number
   placement?: Placement
   scene?: Scene
+  framing?: Framing
+  impact?: Impact
+  cues?: Cue[]
   timing?: {revealDuration: number}
   wordStyles?: StyledRange[]
   transition: { type: typeof transitions[number]; from?: string; to?: string; broken?: true }
@@ -156,6 +160,10 @@ function validBeat(value: unknown): value is Beat {
       Object.keys(value.timing).some(key => key !== 'revealDuration') ||
       !range(value.timing.revealDuration, 0.1, value.duration))) return false
   if (value.scene !== undefined && !validScene(value.scene)) return false
+  if (value.framing !== undefined && !validFraming(value.framing)) return false
+  if (value.impact !== undefined && !validImpact(value.impact)) return false
+  const shapeCount = (value.scene as Scene | undefined)?.shapes?.length ?? 0
+  if (value.cues !== undefined && !validCues(value.cues, value.duration, shapeCount)) return false
   const placement = value.placement
   if (placement !== undefined && (!object(placement) ||
       (placement.position !== undefined && !range(placement.position, -100, 100)) ||

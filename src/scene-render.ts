@@ -1,3 +1,4 @@
+import {cuePose} from './direction'
 import {WIDTH, type Layout, type Surface} from './layout'
 import {coolColors, themes, type Beat, type Theme} from './model'
 import {randomAt} from './motion'
@@ -106,16 +107,18 @@ export function drawGraphics(ctx: CanvasRenderingContext2D, beat: Beat, theme: T
   ctx.save()
   for (const [index, shape] of shapes.entries()) {
     const {kind, x, y, size, motion, tone, energy} = {...graphicDefaults, ...shape}
+    const cue = cuePose(beat.cues, index, time, x, y)
+    if (!cue.alpha) continue
     const power = energy / 100 * calm(beat)
     const offset = phase * TAU + randomAt(seed, index + 165) * TAU
     const drift = motion === 'Drift' ? power : 0
     const scale = motion === 'Expand' ? 1 - power * (0.63 - 0.85 * smooth(phase * 1.65)) : 1
-    const cx = x / 100 * WIDTH + Math.sin(offset) * drift * WIDTH * 0.10
-    const cy = surface.top + y / 100 * area + Math.cos(offset) * drift * area * 0.10
-    const length = size / 100 * WIDTH * scale * (surface.unit < 1 ? 0.78 : 1)
+    const cx = cue.x / 100 * WIDTH + Math.sin(offset) * drift * WIDTH * 0.10
+    const cy = surface.top + cue.y / 100 * area + Math.cos(offset) * drift * area * 0.10
+    const length = size / 100 * WIDTH * scale * cue.scale * (surface.unit < 1 ? 0.78 : 1)
     const color = toneColor(theme, tone)
-    ctx.strokeStyle = rgba(color, opacity * 0.61)
-    ctx.fillStyle = rgba(color, opacity * 0.085)
+    ctx.strokeStyle = rgba(color, opacity * cue.alpha * 0.61)
+    ctx.fillStyle = rgba(color, opacity * cue.alpha * 0.085)
     ctx.lineWidth = (kind === 'Line' ? 4.6 : 3.4) * surface.unit
     ctx.beginPath()
     if (kind === 'Circle') {
@@ -150,7 +153,7 @@ function boundsOf(layout: Layout) {
 }
 
 const still = {dx: 0, dy: 0, scale: 1, wordMotion: 1}
-export function typographyPose(beat: Beat, layout: Layout, time: number, surface: Surface) {
+function sceneTypographyPose(beat: Beat, layout: Layout, time: number, surface: Surface) {
   const amount = typeAmount(beat)
   if (!amount || !layout.glyphs.length) return still
   const {left, right, top, bottom} = boundsOf(layout)
@@ -179,4 +182,50 @@ export function typographyPose(beat: Beat, layout: Layout, time: number, surface
   const halfHeight = Math.min(roomY / 2, height * zoom / 2)
   const centerY = clamp(y, surface.top + halfHeight, surface.bottom - halfHeight)
   return {scale: zoom, dx: centerX - x * zoom, dy: centerY - y * zoom, wordMotion: 1 - amount * 0.56}
+}
+
+export function typographyPose(beat: Beat, layout: Layout, time: number, surface: Surface) {
+  const base = sceneTypographyPose(beat, layout, time, surface)
+  const cue = cuePose(beat.cues, 'Text', time)
+  const framing = beat.framing
+  if (!layout.glyphs.length || (!framing && cue.scale === 1)) return base
+  const {left, right, top, bottom} = boundsOf(layout)
+  const centerX = (left + right) / 2
+  const centerY = (top + bottom) / 2
+  const crop = framing?.crop === true
+  const minY = crop ? 0 : surface.top
+  const maxY = crop ? surface.height : surface.bottom
+  const width = Math.max(1, right - left)
+  const height = Math.max(1, bottom - top)
+  const fit = Math.min((WIDTH - 36) / width, (maxY - minY - 20) / height)
+  const scale = Math.min(crop ? 6 : fit, base.scale * (framing?.zoom ?? 100) / 100 * cue.scale)
+  const x = framing?.x === undefined ? base.dx + centerX * base.scale : framing.x * WIDTH / 100
+  const y = framing?.y === undefined ? base.dy + centerY * base.scale : framing.y * surface.height / 100
+  const halfWidth = width * scale / 2
+  const halfHeight = height * scale / 2
+  const aimX = crop ? x : clamp(x, 18 + halfWidth, WIDTH - 18 - halfWidth)
+  const aimY = crop ? y : clamp(y, minY + 10 + halfHeight, maxY - 10 - halfHeight)
+  return {...base, scale, dx: aimX - centerX * scale, dy: aimY - centerY * scale}
+}
+
+export function impactTypographyPose(beat: Beat, layout: Layout, type: ReturnType<typeof typographyPose>, surface: Surface, amount: number) {
+  if (!amount || !layout.glyphs.length) return type
+  if (beat.framing?.crop) {
+    const factor = Math.min(6 / type.scale, 1 + amount)
+    return {...type, scale: type.scale * factor,
+      dx: type.dx * factor + WIDTH / 2 * (1 - factor),
+      dy: type.dy * factor + surface.height / 2 * (1 - factor)}
+  }
+  const {left, right, top, bottom} = boundsOf(layout)
+  const x = (left + right) / 2
+  const y = (top + bottom) / 2
+  const fit = Math.min((WIDTH - 36) / Math.max(1, right - left),
+    (surface.bottom - surface.top - 20) / Math.max(1, bottom - top))
+  const scale = Math.max(type.scale, Math.min(fit, type.scale * (1 + amount)))
+  if (scale === type.scale) return type
+  const halfWidth = (right - left) * scale / 2
+  const halfHeight = (bottom - top) * scale / 2
+  const aimX = clamp(type.dx + x * type.scale, 18 + halfWidth, WIDTH - 18 - halfWidth)
+  const aimY = clamp(type.dy + y * type.scale, surface.top + 10 + halfHeight, surface.bottom - 10 - halfHeight)
+  return {...type, scale, dx: aimX - x * scale, dy: aimY - y * scale}
 }

@@ -32,7 +32,7 @@ test('Scene v1 validates the meta demo, applies independent defaults and rejects
     .toEqual({background: {kind: 'Flow'}, shapes: [{kind: 'Line'}], typeMotion: {kind: 'Slide'}})
   for (const scene of [null, [], {unknown: true}, {background: {kind: 'Photo'}},
     {background: {kind: 'Grain', scale: 1e6}}, {background: {kind: 'Flow', speed: 'fast'}}, {background: {kind: 'Off', url: 'x'}},
-    {shapes: Array.from({length: 4}, () => ({kind: 'Circle'}))}, {shapes: [{kind: 'Circle', x: -1}]},
+    {shapes: Array.from({length: 4}, () => ({kind: 'Circle'}))}, {shapes: [{kind: 'Circle', x: -101}]},
     {shapes: [{kind: 'Line', tone: 'Purple'}]}, {shapes: [{kind: 'Rectangle', front: true}]},
     {typeMotion: {kind: 'Oversized', amount: Infinity}}]) {
     expect(() => changeScene(scene)).toThrow()
