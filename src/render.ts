@@ -1,8 +1,9 @@
+import {cuePose} from './direction'
 import {coolColors, linkedAnchors, themes, wordAccents, type Beat, type Document, type Emphasis, type Theme} from './model'
 import {createLayout, font, WIDTH, lab, reel, type Glyph, type Layout, type Surface} from './layout'
 import {pose} from './motion'
-import {drawBackground, drawGraphics, typographyPose} from './scene-render'
-import {clamp, locate, overlap, readingSeconds, revealAlpha, smooth, transitionPreviewRange, transitionSpan} from './timeline'
+import {drawBackground, drawGraphics, impactTypographyPose, typographyPose} from './scene-render'
+import {beatStart, clamp, locate, overlap, readingSeconds, revealAlpha, smooth, transitionPreviewRange, transitionSpan} from './timeline'
 
 const reelLayouts = new WeakMap<Beat, Layout>()
 const labLayouts = new WeakMap<Beat, Layout>()
@@ -47,6 +48,8 @@ function styledColor(glyph: Glyph, theme: Theme, fallback: string) {
 type AnchorPaint = {only?: Emphasis; held?: Emphasis; revealFloor?: number}
 
 function drawBeat(ctx: CanvasRenderingContext2D, doc: Document, beat: Beat, layout: Layout, local: number, opacity: number, offset: number, surface: Surface, omit?: Emphasis, treatment = typographyPose(beat, layout, local, surface), anchor?: AnchorPaint) {
+  opacity *= cuePose(beat.cues, 'Text', local).alpha
+  if (opacity <= 0) return
   const [, ink, accent] = themes[doc.theme]
   const marked = beat.emphasis.length > 0
   const focusCount = marked ? beat.emphasis.length : layout.phrases
@@ -55,7 +58,7 @@ function drawBeat(ctx: CanvasRenderingContext2D, doc: Document, beat: Beat, layo
   const revealWindow = Math.max(0.1, beat.duration - Math.min(readingSeconds(beat) * 0.65, beat.duration * 0.45))
   ctx.save()
   ctx.beginPath()
-  ctx.rect(0, surface.top, WIDTH, surface.bottom - surface.top)
+  ctx.rect(0, beat.framing?.crop ? 0 : surface.top, WIDTH, beat.framing?.crop ? surface.height : surface.bottom - surface.top)
   ctx.clip()
   if (treatment.scale !== 1 || treatment.dx || treatment.dy) {
     ctx.translate(treatment.dx, treatment.dy)
@@ -153,7 +156,15 @@ function receivedAnchor(previous: Beat | undefined, beat: Beat) {
 }
 
 function drawTransition(ctx: CanvasRenderingContext2D, doc: Document, beat: Beat, next: Beat,
-  local: number, incomingTime: number, progress: number, surface: Surface, chrome: () => void, held?: Emphasis) {
+  local: number, incomingTime: number, linear: number, surface: Surface, chrome: (active?: Beat) => void, held?: Emphasis) {
+  const progress = smooth(linear)
+  const impact = beat.impact
+  const cut = !!impact
+  const swing = impact?.kind === 'Cut' ? Number(overlap(beat, next) > 0 || linear >= 1)
+    : cut ? Number(linear >= 0.5) : progress
+  const pulse = impact && impact.kind !== 'Cut'
+    ? 1 - smooth(Math.abs(linear - 0.5) * 2 * transitionSpan(beat, next) / Math.min(transitionSpan(beat, next), impact.duration)) : 0
+  const intensity = impact && impact.kind !== 'Cut' ? impact.intensity / 100 : 0
   const [, , accent] = themes[doc.theme]
   const layout = layoutFor(ctx, beat, surface)
   const incoming = layoutFor(ctx, next, surface)
@@ -161,17 +172,25 @@ function drawTransition(ctx: CanvasRenderingContext2D, doc: Document, beat: Beat
   const left = links && anchorRun(layout, links[0])
   const right = links && anchorRun(incoming, links[1])
   const canPersist = links && left?.length && right?.length
-  const drift = beat.transition.type === 'Transform' ? 145 * surface.unit : 0
+  const drift = !cut && beat.transition.type === 'Transform' ? 145 * surface.unit : 0
   const stagger = canPersist || overlap(beat, next) > 0
-  const outgoingOpacity = stagger ? 1 - smooth(progress / 0.66) : 1 - progress
-  const incomingOpacity = stagger ? smooth((progress - 0.34) / 0.66) : progress
-  drawBackground(ctx, beat, doc.theme, doc.seed, local, surface, 1 - progress)
-  drawBackground(ctx, next, doc.theme, doc.seed, incomingTime, surface, progress)
-  drawGraphics(ctx, beat, doc.theme, doc.seed, local, surface, 1 - progress)
-  drawGraphics(ctx, next, doc.theme, doc.seed, incomingTime, surface, progress)
-  chrome()
-  const outgoingType = typographyPose(beat, layout, local, surface)
-  const incomingType = typographyPose(next, incoming, incomingTime, surface)
+  const outgoingOpacity = cut ? 1 - swing : stagger ? 1 - smooth(progress / 0.66) : 1 - progress
+  const incomingOpacity = cut ? swing : stagger ? smooth((progress - 0.34) / 0.66) : progress
+  drawBackground(ctx, beat, doc.theme, doc.seed, local, surface, 1 - swing)
+  drawBackground(ctx, next, doc.theme, doc.seed, incomingTime, surface, swing)
+  drawGraphics(ctx, beat, doc.theme, doc.seed, local, surface, 1 - swing)
+  drawGraphics(ctx, next, doc.theme, doc.seed, incomingTime, surface, swing)
+  if (impact?.kind === 'Flash' && pulse > 0) {
+    ctx.save()
+    ctx.globalAlpha = pulse * intensity * 0.39
+    ctx.fillStyle = accent
+    ctx.fillRect(0, 0, WIDTH, surface.height)
+    ctx.restore()
+  }
+  chrome(cut ? (swing ? next : beat) : undefined)
+  const zoom = impact?.kind === 'Impact Zoom' ? pulse * intensity * 0.36 : 0
+  const outgoingType = impactTypographyPose(beat, layout, typographyPose(beat, layout, local, surface), surface, zoom)
+  const incomingType = impactTypographyPose(next, incoming, typographyPose(next, incoming, incomingTime, surface), surface, zoom)
   drawBeat(ctx, doc, beat, layout, local, outgoingOpacity, -drift * progress, surface, canPersist ? links[0] : undefined, outgoingType, {held})
   drawBeat(ctx, doc, next, incoming, incomingTime, incomingOpacity, drift * (1 - progress), surface, canPersist ? links[1] : undefined, incomingType)
   if (!links || !left?.length || !right?.length) return
@@ -180,11 +199,12 @@ function drawTransition(ctx: CanvasRenderingContext2D, doc: Document, beat: Beat
   const b = right[0]
   ctx.save()
   ctx.beginPath()
-  ctx.rect(0, surface.top, WIDTH, surface.bottom - surface.top)
+  const full = beat.framing?.crop || next.framing?.crop
+  ctx.rect(0, full ? 0 : surface.top, WIDTH, full ? surface.height : surface.bottom - surface.top)
   ctx.clip()
   if (left.length === 1 && right.length === 1 && a.text === b.text && !a.style && !b.style &&
       a.weight === b.weight && beat.typography.font === next.typography.font &&
-      beat.mode === 'Transform' && next.mode === 'Transform' && beat.effect !== 'Scatter' && next.effect !== 'Scatter') {
+      !beat.cues?.length && !next.cues?.length && beat.mode === 'Transform' && next.mode === 'Transform' && beat.effect !== 'Scatter' && next.effect !== 'Scatter') {
     // Identical lettering can travel as one native glyph run, including the original Tide handoff.
     const out = pose(beat, local, doc.seed, a.word)
     const into = pose(next, incomingTime, doc.seed, b.word)
@@ -225,7 +245,7 @@ function drawTransition(ctx: CanvasRenderingContext2D, doc: Document, beat: Beat
       if (part.toX <= part.fromX || (part.beat === beat && progress === 1) || (part.beat === next && progress === 0)) continue
       ctx.save()
       ctx.beginPath()
-      ctx.rect(part.fromX, surface.top, part.toX - part.fromX, surface.bottom - surface.top)
+      ctx.rect(part.fromX, part.beat.framing?.crop ? 0 : surface.top, part.toX - part.fromX, part.beat.framing?.crop ? surface.height : surface.bottom - surface.top)
       ctx.clip()
       ctx.translate(x, y)
       ctx.scale(width / part.box.width, height / part.box.height)
@@ -241,7 +261,7 @@ function drawTransition(ctx: CanvasRenderingContext2D, doc: Document, beat: Beat
 
 function drawSequence(ctx: CanvasRenderingContext2D, doc: Document, seconds: number, surface: Surface) {
   const {beat, index, local} = locate(doc, seconds)
-  const chrome = () => {if (surface === reel) drawReelChrome(ctx, doc, beat, index)}
+  const chrome = (active = beat) => {if (surface === reel) drawReelChrome(ctx, doc, active, active === beat ? index : doc.beats.indexOf(active))}
   ctx.fillStyle = themes[doc.theme][0]
   ctx.fillRect(0, 0, WIDTH, surface.height)
   const layout = layoutFor(ctx, beat, surface)
@@ -250,10 +270,10 @@ function drawSequence(ctx: CanvasRenderingContext2D, doc: Document, seconds: num
   const incomingOverlap = previous ? overlap(previous, beat) : 0
   if (previous && local < incomingOverlap) {
     const outgoingTime = previous.duration - incomingOverlap + local
-    drawTransition(ctx, doc, previous, beat, outgoingTime, local, smooth(local / incomingOverlap), surface, chrome, receivedAnchor(doc.beats[index - 2], previous))
+    drawTransition(ctx, doc, previous, beat, outgoingTime, local, local / incomingOverlap, surface, chrome, receivedAnchor(doc.beats[index - 2], previous))
   } else if (next && !overlap(beat, next) && local > beat.duration - transitionSpan(beat, next)) {
     const span = transitionSpan(beat, next)
-    drawTransition(ctx, doc, beat, next, local, 0, smooth((local - beat.duration + span) / span), surface, chrome, receivedAnchor(previous, beat))
+    drawTransition(ctx, doc, beat, next, local, 0, (local - beat.duration + span) / span, surface, chrome, receivedAnchor(previous, beat))
   } else {
     drawBackground(ctx, beat, doc.theme, doc.seed, local, surface, 1)
     drawGraphics(ctx, beat, doc.theme, doc.seed, local, surface, 1)
@@ -267,14 +287,16 @@ export function renderFrame(ctx: CanvasRenderingContext2D, doc: Document, second
   return drawSequence(ctx, doc, seconds, reel)
 }
 
-export function renderLabFrame(ctx: CanvasRenderingContext2D, doc: Document, index: number, phase: number, transition: boolean) {
+export function renderLabFrame(ctx: CanvasRenderingContext2D, doc: Document, index: number, phase: number, transition: boolean, vertical = false, exactTime?: number) {
   const beat = doc.beats[index]
   const next = doc.beats[index + 1]
   if (transition && next) {
     const {start, finish} = transitionPreviewRange(doc, index)
-    drawSequence(ctx, doc, start + (finish - start) * phase, lab)
+    drawSequence(ctx, doc, start + (finish - start) * phase, vertical ? reel : lab)
+  } else if (vertical) {
+    drawSequence(ctx, doc, beatStart(doc, index) + (exactTime ?? phase * beat.duration), reel)
   } else {
-    const time = phase * beat.duration
+    const time = exactTime ?? phase * beat.duration
     ctx.fillStyle = themes[doc.theme][0]
     ctx.fillRect(0, 0, WIDTH, lab.height)
     drawBackground(ctx, beat, doc.theme, doc.seed, time, lab, 1)

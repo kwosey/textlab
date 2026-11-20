@@ -6,8 +6,8 @@ import {
   shapeMotions, shapes, typeMotions, typeMotionDefaults, type Graphic, type Scene,
 } from './scene'
 
-export function SceneEditor({scene, onChange, onAnimate}: {
-  scene?: Scene; onChange: (scene: Scene | undefined) => void; onAnimate: () => void
+export function SceneEditor({scene, onChange, onAnimate, onRemoveShape}: {
+  scene?: Scene; onChange: (scene: Scene | undefined) => void; onAnimate: () => void; onRemoveShape: (index: number) => void
 }) {
   const [selectedShape, selectShape] = useState(0)
   const background = scene?.background
@@ -60,14 +60,14 @@ export function SceneEditor({scene, onChange, onAnimate}: {
           <Choices label="Shape motion" values={shapeMotions} value={graphic.motion} set={motion => changeShape({motion}, true)}/>
           <Choices label="Shape tone" values={sceneTones} value={graphic.tone} set={tone => changeShape({tone})}/>
           <div className="slider-grid">
-            <Slider label="Shape horizontal" value={graphic.x} min={0} max={100} unit="%" set={x => changeShape({x})}/>
-            <Slider label="Shape vertical" value={graphic.y} min={0} max={100} unit="%" set={y => changeShape({y})}/>
-            <Slider label="Shape size" value={graphic.size} min={8} max={90} unit="%" set={size => changeShape({size})}/>
+            <Slider label="Shape horizontal" value={graphic.x} min={-100} max={200} unit="%" set={x => changeShape({x})}/>
+            <Slider label="Shape vertical" value={graphic.y} min={-100} max={200} unit="%" set={y => changeShape({y})}/>
+            <Slider label="Shape size" value={graphic.size} min={8} max={240} unit="%" set={size => changeShape({size})}/>
             {graphic.motion !== 'Hold' && <Slider label="Shape motion amount" value={graphic.energy} min={0} max={100}
               unit="%" set={energy => changeShape({energy})}/>}
           </div>
           <button className="small-button scene-remove" onClick={() => {
-            onChange({...scene, shapes: graphics.filter((_, i) => i !== index)})
+            onRemoveShape(index)
             selectShape(Math.max(0, index - 1))
           }}><Trash2 size={14}/> Remove shape</button>
         </>}

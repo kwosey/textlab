@@ -1,0 +1,435 @@
+{
+  "documentVersion": 1,
+  "title": "Ошибка восприятия — Director's Cut",
+  "originalText": "НЕ СМОТРИ\nНА КРУГ\n\nТеперь —\nна линию.\n\nКруга\nбольше нет.\n\nНо ты всё ещё\nищешь его.\n\nВот он.",
+  "theme": "Night",
+  "seed": 180417,
+  "beats": [
+    {
+      "id": "perception-hook",
+      "text": "НЕ СМОТРИ\nНА КРУГ",
+      "duration": 3.4,
+      "mode": "Reading",
+      "typography": {
+        "font": "Sans",
+        "size": 137,
+        "weight": 800,
+        "leading": 1.02,
+        "width": 88,
+        "align": "Center",
+        "bionic": false
+      },
+      "emphasis": [],
+      "effect": "Wave",
+      "reveal": "Words",
+      "intensity": 40,
+      "transition": {
+        "type": "Replace"
+      },
+      "scene": {
+        "background": {
+          "kind": "Gradient Drift",
+          "intensity": 55,
+          "speed": 0.45
+        },
+        "shapes": [
+          {
+            "kind": "Circle",
+            "tone": "Accent",
+            "size": 35,
+            "x": 53,
+            "y": 69
+          }
+        ]
+      },
+      "framing": {
+        "x": 50,
+        "y": 28,
+        "zoom": 105,
+        "crop": true
+      },
+      "cues": [
+        {
+          "at": 0,
+          "duration": 0,
+          "target": 0,
+          "action": "Scale",
+          "value": 38
+        },
+        {
+          "at": 0.41,
+          "duration": 0.22,
+          "target": "Text",
+          "action": "Scale",
+          "value": 153
+        },
+        {
+          "at": 0.63,
+          "duration": 0.09,
+          "target": "Text",
+          "action": "Hide"
+        },
+        {
+          "at": 0.66,
+          "duration": 0.22,
+          "target": 0,
+          "action": "Scale",
+          "value": 300
+        },
+        {
+          "at": 0.66,
+          "duration": 0.26,
+          "target": 0,
+          "action": "Move",
+          "x": 57,
+          "y": 55
+        },
+        {
+          "at": 1.32,
+          "duration": 0.33,
+          "target": 0,
+          "action": "Scale",
+          "value": 240
+        },
+        {
+          "at": 2.31,
+          "duration": 0.21,
+          "target": 0,
+          "action": "Move",
+          "x": 48,
+          "y": 45
+        }
+      ],
+      "impact": {
+        "kind": "Flash",
+        "duration": 0.16,
+        "intensity": 86
+      }
+    },
+    {
+      "id": "perception-line",
+      "text": "Теперь —\nна линию.",
+      "duration": 3.2,
+      "mode": "Reading",
+      "typography": {
+        "font": "Sans",
+        "size": 135,
+        "weight": 800,
+        "leading": 1.02,
+        "width": 88,
+        "align": "Center",
+        "bionic": false
+      },
+      "emphasis": [],
+      "effect": "Wave",
+      "reveal": "Words",
+      "intensity": 40,
+      "transition": {
+        "type": "Replace"
+      },
+      "scene": {
+        "background": {
+          "kind": "Flow",
+          "intensity": 48,
+          "speed": 0.65
+        },
+        "shapes": [
+          {
+            "kind": "Circle",
+            "tone": "Accent",
+            "size": 82,
+            "x": 50,
+            "y": 46
+          },
+          {
+            "kind": "Line",
+            "tone": "Cool",
+            "size": 56,
+            "x": 50,
+            "y": 46
+          }
+        ]
+      },
+      "framing": {
+        "x": 49,
+        "y": 64,
+        "zoom": 108,
+        "crop": false
+      },
+      "cues": [
+        {
+          "at": 0,
+          "duration": 0,
+          "target": "Text",
+          "action": "Hide"
+        },
+        {
+          "at": 0,
+          "duration": 0,
+          "target": 1,
+          "action": "Scale",
+          "value": 12
+        },
+        {
+          "at": 0.05,
+          "duration": 0.26,
+          "target": 0,
+          "action": "Move",
+          "x": 158,
+          "y": 45
+        },
+        {
+          "at": 0.26,
+          "duration": 0.21,
+          "target": 1,
+          "action": "Scale",
+          "value": 180
+        },
+        {
+          "at": 0.43,
+          "duration": 0.18,
+          "target": "Text",
+          "action": "Show"
+        }
+      ],
+      "impact": {
+        "kind": "Cut"
+      },
+      "wordStyles": [
+        {
+          "start": 12,
+          "end": 17,
+          "style": {
+            "color": "Cool"
+          }
+        }
+      ]
+    },
+    {
+      "id": "perception-empty",
+      "text": "Круга\nбольше нет.",
+      "duration": 3.65,
+      "mode": "Reveal",
+      "typography": {
+        "font": "Sans",
+        "size": 103,
+        "weight": 800,
+        "leading": 1.02,
+        "width": 88,
+        "align": "Center",
+        "bionic": false
+      },
+      "emphasis": [],
+      "effect": "Wave",
+      "reveal": "Words",
+      "intensity": 40,
+      "transition": {
+        "type": "Replace"
+      },
+      "scene": {
+        "background": {
+          "kind": "Grain",
+          "intensity": 42,
+          "speed": 0,
+          "scale": 130
+        },
+        "shapes": [
+          {
+            "kind": "Line",
+            "tone": "Cool",
+            "size": 9,
+            "x": 24,
+            "y": 35
+          }
+        ]
+      },
+      "framing": {
+        "x": 32,
+        "y": 28,
+        "zoom": 87,
+        "crop": false
+      },
+      "cues": [],
+      "timing": {
+        "revealDuration": 0.76
+      }
+    },
+    {
+      "id": "perception-search",
+      "text": "Но ты всё ещё\nищешь его.",
+      "duration": 3.3,
+      "mode": "Reading",
+      "typography": {
+        "font": "Sans",
+        "size": 107,
+        "weight": 800,
+        "leading": 1.02,
+        "width": 88,
+        "align": "Center",
+        "bionic": false
+      },
+      "emphasis": [],
+      "effect": "Wave",
+      "reveal": "Words",
+      "intensity": 40,
+      "transition": {
+        "type": "Replace"
+      },
+      "scene": {
+        "background": {
+          "kind": "Gradient Drift",
+          "intensity": 40,
+          "speed": 0.25
+        },
+        "shapes": [
+          {
+            "kind": "Rectangle",
+            "tone": "Cool",
+            "size": 18,
+            "x": 27,
+            "y": 28
+          }
+        ]
+      },
+      "framing": {
+        "x": 70,
+        "y": 56,
+        "zoom": 98,
+        "crop": false
+      },
+      "cues": [
+        {
+          "at": 0.66,
+          "duration": 0.45,
+          "target": 0,
+          "action": "Move",
+          "x": 74,
+          "y": 41
+        },
+        {
+          "at": 1.16,
+          "duration": 0.4,
+          "target": 0,
+          "action": "Move",
+          "x": 74,
+          "y": 77
+        },
+        {
+          "at": 1.85,
+          "duration": 0.15,
+          "target": 0,
+          "action": "Hide"
+        }
+      ],
+      "impact": {
+        "kind": "Impact Zoom",
+        "duration": 0.26,
+        "intensity": 76
+      },
+      "wordStyles": [
+        {
+          "start": 14,
+          "end": 19,
+          "style": {
+            "color": "Accent"
+          }
+        }
+      ]
+    },
+    {
+      "id": "perception-return",
+      "text": "Вот он.",
+      "duration": 4.0,
+      "mode": "Reading",
+      "typography": {
+        "font": "Sans",
+        "size": 151,
+        "weight": 800,
+        "leading": 1.02,
+        "width": 88,
+        "align": "Center",
+        "bionic": false
+      },
+      "emphasis": [],
+      "effect": "Wave",
+      "reveal": "Words",
+      "intensity": 40,
+      "transition": {
+        "type": "Replace"
+      },
+      "scene": {
+        "background": {
+          "kind": "Gradient Drift",
+          "intensity": 64,
+          "speed": 0.35,
+          "scale": 120
+        },
+        "shapes": [
+          {
+            "kind": "Circle",
+            "tone": "Accent",
+            "size": 108,
+            "x": -65,
+            "y": 67
+          },
+          {
+            "kind": "Line",
+            "tone": "Cool",
+            "size": 25,
+            "x": 50,
+            "y": 74
+          }
+        ]
+      },
+      "framing": {
+        "x": 51,
+        "y": 61,
+        "zoom": 118,
+        "crop": false
+      },
+      "cues": [
+        {
+          "at": 0,
+          "duration": 0,
+          "target": "Text",
+          "action": "Hide"
+        },
+        {
+          "at": 0,
+          "duration": 0,
+          "target": 1,
+          "action": "Hide"
+        },
+        {
+          "at": 0.08,
+          "duration": 0.38,
+          "target": 0,
+          "action": "Move",
+          "x": 52,
+          "y": 59
+        },
+        {
+          "at": 0.4,
+          "duration": 0.15,
+          "target": "Text",
+          "action": "Show"
+        },
+        {
+          "at": 0.61,
+          "duration": 0.21,
+          "target": 1,
+          "action": "Show"
+        }
+      ],
+      "wordStyles": [
+        {
+          "start": 4,
+          "end": 6,
+          "style": {
+            "color": "Accent"
+          }
+        }
+      ]
+    }
+  ]
+}

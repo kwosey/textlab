@@ -282,10 +282,10 @@ textarea::selection { background: var(--accent); color: #2f211c; }
   .text-heading h2 { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
 }
 
-.scene-editor > summary { display: flex; align-items: center; gap: 8px; min-height: 42px; cursor: pointer; list-style: none; -webkit-tap-highlight-color: transparent; }
-.scene-editor > summary::-webkit-details-marker { display: none; }
-.scene-editor > summary:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
-.scene-editor > summary strong { font-size: 14px; }
+:is(.scene-editor, .direction-editor) > summary { display: flex; align-items: center; gap: 8px; min-height: 42px; cursor: pointer; list-style: none; -webkit-tap-highlight-color: transparent; }
+:is(.scene-editor, .direction-editor) > summary::-webkit-details-marker { display: none; }
+:is(.scene-editor, .direction-editor) > summary:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
+:is(.scene-editor, .direction-editor) > summary strong { font-size: 14px; }
 .scene-editor[open] > summary svg { transform: rotate(180deg); }
 .scene-status { margin-left: auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--subtle); font-size: 11px; }
 .scene-content { display: grid; gap: 12px; }
@@ -307,3 +307,18 @@ textarea::selection { background: var(--accent); color: #2f211c; }
 .reveal-timing-meta output { color: var(--accent); font-variant-numeric: tabular-nums; }
 .live-canvas-wrap { position: relative; }
 .live-time-badge { position: absolute; right: 6px; bottom: 6px; pointer-events: none; border-radius: 4px; padding: 3px 6px; color: #eee0d5; background: #231f20e8; font-size: 10px; }
+
+.impact-editor { margin-top: 8px; }
+.direction-editor summary, .cue summary { cursor: pointer; }
+.cue { border: 1px solid var(--line); border-radius: 7px; padding: 8px; margin-top: 6px; }
+.cue summary { min-height: 31px; font-size: 13px; padding-top: 5px; }
+.cue-fields { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; padding: 8px 0; }
+.direction-number { display: grid; gap: 4px; min-width: 0; color: var(--subtle); font-size: 12px; }
+.direction-number input, .direction-number select { width: 100%; min-width: 0; border: 1px solid var(--line); border-radius: 6px; padding: 5px 7px; color: var(--text); background: var(--input); font-size: 16px; }
+.cue-actions { display: flex; gap: 5px; flex-wrap: wrap; }
+.proof-toggle { position: absolute; top: 5px; right: 5px; min-height: 32px; background: #231f20ec; color: #f9e5d8; border: 1px solid #676063; border-radius: 6px; padding-inline: 7px; font-size: 11px; }
+.live-preview .vertical-proof canvas { height: clamp(160px, 34dvh, 310px); object-fit: contain; background: #1c1a1b !important; }
+@media (max-width: 760px) {
+  [data-short-viewport=true] .live-preview .vertical-proof canvas { height: 84px; }
+  .cue .small-button { min-height: 38px; }
+}

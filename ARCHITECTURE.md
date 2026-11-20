@@ -29,3 +29,7 @@ Scene edits reuse text layout when its inputs are unchanged. Background paths ha
 Explicit Reveal defines opacity in elapsed local seconds. The clock and Hold calculation share transition spans with Compose. Beat Lab plays explicit Reveal and the end-of-Beat preview at real speed.
 
 Persist omits linked anchors from normal transition lettering. Matching single-run Transform lettering travels as one glyph, while mixed styles use the native source and destination runs in one interpolated footprint. A moving clip boundary hands off the style without stacked glyphs. The incoming renderer keeps carried Reveal lettering visible across the boundary.
+
+`direction.ts` validates and evaluates independent cue channels using only Beat-local time and ordered document data. The shared renderer applies cue opacity, scale and position before compositing and keeps the existing Anchor interpolation. Visual impact is a layer treatment within the existing handoff span. Beat Lab can use the Compose viewport and timeline directly for crop proofing.
+
+The clipboard action reads one literal prompt from `editorial-prompt.ts` and never writes the document.

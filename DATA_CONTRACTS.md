@@ -25,6 +25,9 @@ Use the [complete working document](examples/a-quiet-interval.json) as a templat
 | `wordStyles` | Optional ordered, nonoverlapping visual ranges. See below |
 | `emphasis` | Up to 100 ordered, nonoverlapping ranges |
 | `placement` | Optional object with `position`, `scale`, and `overlap` |
+| `cues` | Optional ordered list of timed actions described below |
+| `framing` | Optional full-frame type framing described below |
+| `impact` | Optional visual treatment for the outgoing handoff |
 | `timing` | Optional Reveal timing object described below |
 | `scene` | Optional Visual Scene object described below |
 | `transition` | Object with `type` and optional paired `from` and `to` |
@@ -66,9 +69,9 @@ The optional `scene` object accepts only `background`, `shapes`, and `typeMotion
 | `shapes[]` | `kind` | `Circle`, `Line`, `Rectangle` | Required for each shape |
 | | `motion` | `Hold`, `Expand`, `Drift` | `Hold` |
 | | `tone` | `Accent`, `Cool`, `Ink` | `Accent` |
-| | `x` | 0–100 percent of width, left to right | 50 |
-| | `y` | 0–100 percent of text area height, top to bottom | 48 |
-| | `size` | 8–90 percent of width, adapted in the wide Lab | 43 |
+| | `x` | −100–200 percent of width, left to right | 50 |
+| | `y` | −100–200 percent of text area height, top to bottom | 48 |
+| | `size` | 8–240 percent of width, adapted in the wide Lab | 43 |
 | | `energy` | 0–100 percent | 60 |
 | `typeMotion` | `kind` | `Off`, `Punch`, `Slide`, `Oversized` | `Off` when the object is omitted; otherwise required |
 | | `amount` | 0–100 percent | 60 |
@@ -86,3 +89,27 @@ Without timing, Reveal uses the existing reading estimate and entrance schedule.
 Overlap advances the local clock of the incoming Beat, while the outgoing fade starts at the outgoing duration minus the transition span. These composition fades are independent of Reveal opacity. The displayed solo Hold is the time between the later of the Reveal deadline and the incoming overlap end, and the start of the outgoing transition. It is zero when those intervals intersect. To see the whole phrase at full contrast before a handoff, set Reveal to finish before the outgoing transition. A carried Anchor in an incoming Reveal is visible from the handoff onward. The single-Beat Lab view shows the Beat in isolation. Use Transition to inspect the carry from its preceding Beat.
 
 A complete [4.5-second timing document](examples/reading-rhythm.json) has a 1.5-second Reveal and a 3-second Hold. The [Persist example](examples/persist-gaze.json) uses different layouts, fonts, colors, weights and scene treatments for the same linked word.
+
+## Kinetic Direction
+
+These optional Beat fields extend v1. Imports reject unknown keys within these objects and inside each cue. Omitting them preserves the original renderer. For a complete five-Beat sequence, import [Director's Cut](examples/perception-directors-cut.json).
+
+### Framing and impact
+
+- `framing` accepts `x`, `y`, `zoom`, and `crop`. X and Y are 0–100 percent of the canvas and place the center of the text block on their axes. An omitted axis retains the existing composed center. Zoom is 50–340 percent, default 100, and multiplies existing type motion and Cue scale. By default the measured block fits inside the readable text area. `crop: true` permits deliberate canvas-edge clipping, with combined scale bounded at 600 percent.
+- `impact: {"kind":"Cut"}` switches normal lettering and Scene layers at the next Beat start. `{"kind":"Flash","duration":0.16,"intensity":86}` and `{"kind":"Impact Zoom","duration":0.26,"intensity":76}` switch those layers at the midpoint of the existing handoff window. They add one theme-accent pulse or a typographic zoom. Both accept duration 0.04–0.6 seconds and intensity 0–100, required. The pulse fits inside the existing handoff and does not add timeline time or alter overlap. Zoom fits text unless crop is enabled. Linked Persist text continues across the window regardless of impact; the treatment does not create or change links.
+- Shapes accept the expanded dimensions above. Objects can extend beyond the canvas and remain behind the lettering.
+
+### Cues
+
+A Beat can have up to 20 Cues in ascending `at` order. Each contains `at`, `duration`, `target` and `action`, plus only the parameters in the table. Times are finite real seconds measured from Beat start. `0 ≤ at < beat.duration`, `duration ≥ 0`, and `at + duration ≤ beat.duration` (with a `1e-9` second tolerance for floating-point rounding). Zero duration applies immediately at the stated time. Interpolated actions use smoothstep, then retain their destination until another action changes that property.
+
+| Action | Target | Extra fields | Starting value |
+| --- | --- | --- | --- |
+| `Show`, `Hide` | `"Text"` or zero-based index in `scene.shapes` | None | Visible, opacity 1 |
+| `Scale` | Text or shape | `value` 10–300 percent | 100 percent multiplier |
+| `Move` | Shape only | `x`, `y` −100–200 percent | Shape's authored or default coordinates |
+
+For a given target, Show and Hide share one visibility channel. Scale and Move each have their own channel. Events in the same channel cannot overlap or begin together. An event may start at the prior event’s end. Independent channels may start simultaneously and yield the same result in either order. Shape order is the order in `scene.shapes`. Removing a shape in the editor removes its Cues and reindexes the survivors.
+
+Visibility multiplies Reveal, Hold, and transition opacity. Hide may interrupt Reveal or hide an Anchor deliberately. Text Scale combines with framing and Scene type motion. Shape Move replaces the base position while existing Drift or Expand continues relative to it. Overlap advances the incoming Beat’s local clock, so its Cues can fire during overlap. A zero-overlap handoff samples the incoming Beat at time zero until its clock begins. Wide Beat Lab isolates the selected Beat, while **9:16** samples the full Compose timeline. Cue-bearing Beats play at real speed and Preview cue seeks to the authored start.

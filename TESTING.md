@@ -42,3 +42,9 @@ Import [the timing example](examples/reading-rhythm.json). Restart in Beat Lab a
 Import [the gaze example](examples/persist-gaze.json). Tap Transition from the first Beat and tap again to replay. The cyan italic word travels down and hands off to the warm bold version. It stays visible when the incoming Reveal starts. Repeat with zero overlap and with a one-second overlap. Compare The Returning Tide and check the disabled Transition button on the final Beat.
 
 Automated tests sample actual pixels through the gaze handoff at 60 Hz and use a controlled clock for real-time Reveal. On a physical iPhone, view both proof compositions in Safari and check pacing, perceived continuity, slider response and keyboard behavior.
+
+## Kinetic Direction
+
+Open Director's Cut and inspect the opening title crop, expanding circle, flash to the line, quiet Beat, and returning circle. In Direction, change a cue, tap **Preview cue**, and compare **9:16** against Compose at the same time. Scrub backward and compare the same frame. Check all visual handoffs with a linked Anchor.
+
+The tests cover schema rejection, ordered cues, frame determinism, exact 9:16 proofing, JSON round-trip, and copy/error feedback with a real Chromium clipboard. On a physical iPhone, confirm clipboard behavior under HTTPS, the keyboard and sticky preview while editing Cues, crop alignment, and visual pacing.

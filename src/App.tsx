@@ -1,3 +1,6 @@
+import {DirectionEditor, ImpactEditor} from './DirectionEditor'
+import {editorialPrompt} from './editorial-prompt'
+import {validCues} from './direction'
 import {Choices, Slider} from './Controls'
 import {SceneEditor} from './SceneEditor'
 import {useEffect, useLayoutEffect, useRef, useState, type PointerEvent, type ReactNode} from 'react'
@@ -53,6 +56,7 @@ export function App() {
   const [showSource, setShowSource] = useState(false)
   const [shortViewport, setShortViewport] = useState(false)
   const [workspace, setWorkspace] = useState<Workspace>('lab')
+  const [cuePreview, setCuePreview] = useState<{time: number} | null>(null)
   const [transitionPreview, setTransitionPreview] = useState(false)
   const [liveRestart, setLiveRestart] = useState(0)
   const canvas = useRef<HTMLCanvasElement>(null)
@@ -62,6 +66,7 @@ export function App() {
   const editPosition = useRef<{beatId: string; start: number; end: number; direction: HTMLTextAreaElement['selectionDirection']; scroll: number} | null>(null)
   const pendingView = useRef<Workspace | null>(null)
   const file = useRef<HTMLInputElement>(null)
+  const exportButton = useRef<HTMLButtonElement>(null)
   const textarea = useRef<HTMLTextAreaElement>(null)
   const timeRef = useRef(0)
   const playbackOrigin = useRef(0)
@@ -265,7 +270,7 @@ export function App() {
     if (index <= 0 || index >= beat.text.length || doc.beats.length >= 5 || !boundaries(beat.text).has(index)) return
     const left = {...beat, text: beat.text.slice(0, index), emphasis: beat.emphasis.filter(m => m.end <= index),
       wordStyles: beat.wordStyles?.filter(run => run.start < index).map(run => ({...run, end: Math.min(run.end, index)})),
-      transition: {type: 'Replace'} as const}
+      transition: {type: 'Replace'} as const, impact: undefined}
     const right = {...beat, id: newId(), text: beat.text.slice(index),
       wordStyles: beat.wordStyles?.filter(run => run.end > index).map(run => ({...run, start: Math.max(run.start, index) - index, end: run.end - index})), emphasis: beat.emphasis.filter(m => m.start >= index).map(m => ({...m, start: m.start - index, end: m.end - index}))}
     commit({...doc, beats: [...doc.beats.slice(0, beatIndex), left, right, ...doc.beats.slice(beatIndex + 1)]})
@@ -355,11 +360,23 @@ export function App() {
         </div>
         <button className="toolbar-button keep-button" onClick={save}><Bookmark size={16}/><span>Keep</span></button>
         <div className="menu-anchor">
-          <button className="toolbar-button export-button" onClick={() => setMenu(menu === 'files' ? null : 'files')} aria-expanded={menu === 'files'}><Download size={16}/><span>Export</span><ChevronDown size={13}/></button>
+          <button ref={exportButton} className="toolbar-button export-button" onClick={() => setMenu(menu === 'files' ? null : 'files')} aria-expanded={menu === 'files'}><Download size={16}/><span>Export</span><ChevronDown size={13}/></button>
           {menu === 'files' && <div className="popover">
             <button onClick={exportFrame}><ImageDown size={16}/> Export current PNG</button>
             <button onClick={() => { download(new Blob([JSON.stringify(doc, null, 2)], {type: 'application/json'}), 'text-lab.json'); setMenu(null) }}><FileJson size={16}/> Export JSON</button>
             <button onClick={() => {file.current?.click(); setMenu(null)}}><Upload size={16}/> Import JSON</button>
+            <button onClick={() => {
+              setMenu(null)
+              exportButton.current?.focus()
+              void (async () => {
+                try {
+                  await navigator.clipboard.writeText(editorialPrompt)
+                  setNotice('Prompt copied')
+                } catch {
+                  setNotice('Clipboard unavailable. Allow clipboard access and try again.')
+                }
+              })()
+            }}><FileJson size={16}/> Copy prompt</button>
           </div>}
         </div>
         <input hidden ref={file} type="file" accept=".json,application/json" aria-label="Import document" onChange={event => {void importFile(event.target.files?.[0]); event.target.value = ''}}/>
@@ -373,7 +390,7 @@ export function App() {
     <main className="workspace lab-workspace" hidden={!editing}>
       <LivePreview doc={doc} index={beatIndex} active={editing} transition={transitionPreview && !!next}
         onMode={setTransitionPreview} restart={liveRestart}
-        onMutate={() => {changeBeat(mutate(beat)); restartLive(false)}}/>
+        cuePreview={cuePreview} onMutate={() => {changeBeat(mutate(beat)); restartLive(false)}}/>
       <section id="composition-editor" className="editor" aria-label="Editor">
         <div className="editor-section beats-section">
           <div className="section-heading"><h2>Beats <span className="count">{doc.beats.length} / 5</span></h2><button className="small-button" onClick={addBeat} disabled={doc.beats.length >= 5}><Plus size={15}/> Add beat</button></div>
@@ -443,13 +460,24 @@ export function App() {
             <Slider label="Intensity" value={beat.intensity} min={0} max={100} unit="%" set={intensity => changeBeat({intensity})}/>
           </>}
         </div>
-        <SceneEditor scene={beat.scene} onChange={scene => changeBeat({scene})}
+        <DirectionEditor key={beat.id} beat={beat} update={changeBeat} preview={time => {
+          setTransitionPreview(false)
+          setCuePreview({time})
+        }}/>
+        <SceneEditor scene={beat.scene} onChange={scene => changeBeat({scene, cues: scene ? beat.cues : beat.cues?.filter(cue => cue.target === 'Text')})}
+          onRemoveShape={index => changeBeat({scene: {...beat.scene, shapes: beat.scene?.shapes?.filter((_, i) => i !== index)},
+            cues: beat.cues?.filter(cue => cue.target !== index).map(cue =>
+              typeof cue.target === 'number' && cue.target > index ? {...cue, target: cue.target - 1} : cue)})}
           onAnimate={() => restartLive(transitionPreview)}/>
         {next && <div className="editor-section">
             <span className="field-label">Transition to beat {pad(beatIndex + 2)}</span>
             <Choices label="Transition" values={transitions} value={beat.transition.type} set={transition => {
               if (transition !== beat.transition.type) changeBeat({transition: {type: transition}})
               restartLive(true)
+            }}/>
+            <ImpactEditor impact={beat.impact} update={impact => {
+              changeBeat({impact})
+              if (!transitionPreview || impact?.kind !== beat.impact?.kind) restartLive(true)
             }}/>
             {beat.transition.type === 'Persist' && <AnchorLinks key={JSON.stringify([beat.id, next.id, beat.text, next.text])}
               beat={beat} next={next} index={beatIndex} onLink={setLink} onManual={linkPassages}
@@ -534,6 +562,11 @@ export function App() {
             if (!Number.isFinite(value) || clamp(value, 0.5, 120) === beat.duration) {e.currentTarget.value = String(beat.duration); return}
             e.currentTarget.value = String(clamp(value, 0.5, 120))
             const duration = clamp(value, 0.5, 120)
+            if (beat.cues && !validCues(beat.cues, duration, beat.scene?.shapes?.length ?? 0)) {
+              e.currentTarget.value = String(beat.duration)
+              setNotice('Move or remove cues beyond the new Beat duration first.')
+              return
+            }
             const timing = beat.timing && {revealDuration: Math.min(beat.timing.revealDuration, duration)}
             changeBeat({duration, timing})
           }} onKeyDown={e => {if (e.key === 'Enter') e.currentTarget.blur()}}/> s</label></div>
