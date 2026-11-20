@@ -1,3 +1,4 @@
+import visualScenes from '../examples/visual-scenes-meta-demo.json'
 import quiet from '../examples/a-quiet-interval.json'
 import {decode, makeBeat, type Beat, type Document} from './model'
 const beat = (id: string, text: string, edit: Partial<Beat> = {}) => makeBeat(text, {id, ...edit})
@@ -17,4 +18,5 @@ export const demos: Document[] = [
   decode(quiet),
   {documentVersion: 1, title: 'После дождя', originalText: [opening, middle, ending].map(b => b.text).join('\n\n'), theme: 'Moss', seed: 27, beats: [opening, middle, ending]},
   {documentVersion: 1, title: 'The Returning Tide', originalText: tide.text + '\n\n' + returnTide.text, theme: 'Night', seed: 777, beats: [tide, returnTide]},
+  decode(visualScenes),
 ]

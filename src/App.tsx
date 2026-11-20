@@ -1,3 +1,5 @@
+import {Choices, Slider} from './Controls'
+import {SceneEditor} from './SceneEditor'
 import {useEffect, useLayoutEffect, useRef, useState, type PointerEvent, type ReactNode} from 'react'
 import {
   ArrowDown, ArrowLeft, ArrowRight, ArrowUp, Bookmark, Check, ChevronDown, Download, FileJson,
@@ -24,22 +26,10 @@ const descriptions = {
 }
 const themeLabels: Record<Theme, string> = {Paper: 'Warm paper', Night: 'Night ink', Moss: 'Soft moss', Lilac: 'Pale lilac'}
 
-function Choices<T extends string>({label, values, value, set}: {label: string; values: readonly T[]; value: T | undefined; set: (value: T) => void}) {
-  return <div className="choices" role="group" aria-label={label}>
-    {values.map(item => <button key={item} type="button" className={value === item ? 'active' : ''} aria-pressed={value === item} onClick={() => set(item)}>{item}</button>)}
-  </div>
-}
 function IconButton({label, children, action, disabled = false, pressed}: {
   label: string; children: ReactNode; action: () => void; disabled?: boolean; pressed?: boolean
 }) {
   return <button className="icon-button" type="button" aria-label={label} title={label} onClick={action} disabled={disabled} aria-pressed={pressed}>{children}</button>
-}
-function Slider({label, value, min, max, step = 1, unit = '', set}: {
-  label: string; value: number; min: number; max: number; step?: number; unit?: string; set: (value: number) => void
-}) {
-  return <label className="slider"><span>{label}<output aria-hidden="true">{value}{unit}</output></span>
-    <input aria-label={label} type="range" min={min} max={max} step={step} value={value} onChange={e => set(e.currentTarget.valueAsNumber)} />
-  </label>
 }
 const seconds = (time: number) => time.toFixed(1) + 's'
 const pad = (number: number) => String(number).padStart(2, '0')
@@ -426,6 +416,8 @@ export function App() {
             <Slider label="Intensity" value={beat.intensity} min={0} max={100} unit="%" set={intensity => changeBeat({intensity})}/>
           </>}
         </div>
+        <SceneEditor scene={beat.scene} onChange={scene => changeBeat({scene})}
+          onAnimate={() => restartLive(transitionPreview)}/>
         {next && <div className="editor-section">
             <span className="field-label">Transition to beat {pad(beatIndex + 2)}</span>
             <Choices label="Transition" values={transitions} value={beat.transition.type} set={transition => {

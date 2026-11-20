@@ -6,6 +6,9 @@
 | `src/layout.ts` | Canvas text measurement, styled runs, line wrapping, grapheme-aware splitting, fit |
 | `src/motion.ts` | Seeded analytic Scatter, Echo, and Wave |
 | `src/timeline.ts` | Beat duration, bounded overlap, and timestamp lookup |
+| `src/scene.ts` | Scene vocabulary, defaults, and strict validation |
+| `src/scene-render.ts` | Deterministic background, graphic, and type treatments |
+| `src/SceneEditor.tsx` | Compact Beat Lab scene controls |
 | `src/render.ts` | Shared drawing for the wide Live Preview and the fixed reel, including transitions |
 | `src/persistence.ts` | Drafts, individual collection entries and file downloads |
 | `src/LivePreview.tsx` | Independent UI loop that samples the shared renderer |
@@ -18,3 +21,7 @@ Anchors participate in a transition when explicit references resolve to matching
 The interface draws on [Hequ Motion Lab](https://github.com/kwosey/hequ/tree/hequ-v0.7-motion-lab) for live visual controls and [Tiny Kit Form Lab](https://github.com/kwosey/tinykit) for a separable deterministic renderer and transport.
 
 The word picker uses word segmentation and the model validates grapheme boundaries. Styling and emphasis have separate, nonoverlapping range lists. Layout measures styled runs before wrapping. Markers paint behind lettering while sharing the run’s Reveal, Focus, or Transform timing.
+
+Both canvases paint paper, background, shapes, reel labels (Compose), then lettering. During handoffs the two scene layers crossfade and the renderer resolves Persist in transformed coordinates. Each shape belongs to its Beat. The Lab and reel use the same normalized scene positions and time functions while providing different text layouts.
+
+Scene edits reuse text layout when its inputs are unchanged. Background paths have a bounded draw cost. Grain repeats a small seeded tile kept in a bounded cache per canvas context. Type treatments use glyph bounds cached per measured layout.

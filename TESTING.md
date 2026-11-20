@@ -26,3 +26,11 @@ Playwright checks pixels, pointer movement before release, document compatibilit
 Open Style words on a phone and tap a word, then use Phrase to select across punctuation. Apply Cool, Bold, Marker, and Italic. Verify that the sticky frame updates immediately during Reveal, Focus, and Transform. Reset the style and check that the role remains. Check keyboard arrow navigation between words and edit before or inside the styled phrase.
 
 In The Returning Tide, confirm the linked `tide` card at zero overlap. Remove the link, confirm the suggested pair, then edit an Anchor and check that a broken link is shown. Try choosing both passages manually. On a physical iPhone, repeat selection and linking by touch, toggle between Edit text and Style words with the Safari keyboard up, and check the sticky frame and scroll behavior.
+
+## Visual Scenes
+
+Open the [meta demo](examples/visual-scenes-meta-demo.json) in Compose. Scrub into each Beat and then watch the whole 24.7 seconds. Check the title framing, timed Reveal, circle expansion, lower slide, and final headline as one story.
+
+In Beat Lab, open Scene, select each animated background, change Intensity and Speed before lifting your finger, add an expanding Circle, and switch Type motion to Punch or Oversized. Confirm that the wide preview stays visible while scrolling. Switch to Word Styling and enter text with the software keyboard. Repeat at 320, 375, 390, and 428 CSS px, and check desktop. On a physical iPhone, check Safari frame pacing, touch response and interaction while the keyboard is open. Chromium tests use emulated touch and reduced visual viewport height.
+
+Automated checks sample both canvases, validate and round-trip the meta demo, check marker and Anchor compatibility, compare PNG against Compose pixels, and ensure scene-only drags do not remeasure text. Verify the three older demos with Scene off.

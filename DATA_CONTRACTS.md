@@ -25,6 +25,7 @@ Use the [complete working document](examples/a-quiet-interval.json) as a templat
 | `wordStyles` | Optional ordered, nonoverlapping visual ranges. See below |
 | `emphasis` | Up to 100 ordered, nonoverlapping ranges |
 | `placement` | Optional object with `position`, `scale`, and `overlap` |
+| `scene` | Optional Visual Scene object described below |
 | `transition` | Object with `type` and optional paired `from` and `to` |
 
 Typography requires `font` (`Serif`, `Sans`, `Mono`), `size` (36–170 canvas pixels), `weight` (400–900), `leading` (1–1.8), `width` (45–92 percent), `align` (`Left`, `Center`, `Right`), and boolean `bionic`.
@@ -48,3 +49,29 @@ An item contains `start`, `end`, and `style`. Offsets use the same inclusive/exc
 The style object has at least one of `color` (`Ink`, `Accent`, `Cool`), `weight` (`Light`, `Bold`), `marker: true`, or `italic: true`. Omitted properties inherit the default. Color and weight override the role’s ink and weight. Modes and roles continue to control emphasis and opacity, and marker visibility follows the same animation. Text edits shift intact ranges and discard affected ones. Applying a property edits just that property across the selection.
 
 The document version and storage keys are unchanged. Legacy documents omit the additional fields. See the [styled v1 example](examples/word-styling.json).
+
+## Visual Scenes
+
+Import [the complete five-Beat meta demo](examples/visual-scenes-meta-demo.json) through **Export → Import JSON** in the editor, or open it in the Demos list. Scenes use the existing `documentVersion: 1`. Omitting `scene` preserves the original Beat rendering.
+
+The optional `scene` object accepts only `background`, `shapes`, and `typeMotion`. Unknown fields inside it and its children are rejected. All numbers must be finite. Defaults apply at render time and are not written back during import.
+
+| Object | Field | Accepted values | Default |
+| --- | --- | --- | --- |
+| `background` | `kind` | `Off`, `Gradient Drift`, `Flow`, `Grain` | `Off` when the object is omitted; otherwise required |
+| | `intensity` | 0–100 percent | 55 |
+| | `speed` | 0–2 multiplier, 0 freezes motion | 1 |
+| | `scale` | 50–150 percent | 100 |
+| `shapes[]` | `kind` | `Circle`, `Line`, `Rectangle` | Required for each shape |
+| | `motion` | `Hold`, `Expand`, `Drift` | `Hold` |
+| | `tone` | `Accent`, `Cool`, `Ink` | `Accent` |
+| | `x` | 0–100 percent of width, left to right | 50 |
+| | `y` | 0–100 percent of text area height, top to bottom | 48 |
+| | `size` | 8–90 percent of width, adapted in the wide Lab | 43 |
+| | `energy` | 0–100 percent | 60 |
+| `typeMotion` | `kind` | `Off`, `Punch`, `Slide`, `Oversized` | `Off` when the object is omitted; otherwise required |
+| | `amount` | 0–100 percent | 60 |
+
+Omitted `shapes` is equivalent to an empty array; at most three entries are allowed. Shapes render in array order behind lettering. Size refers to the diameter of a circle or the width of a line or rectangle. Tone refers to the current theme. Punch scales and settles, Slide enters from a bounded offset, and Oversized expands a static block. Headline cropping is allowed only for blocks of up to four words, two measured lines, and 27 UTF-16 units; longer blocks use a scale capped at 1.16 and fitted to the available area.
+
+Background and shape layers crossfade over the existing handoff window. The same document seed and timestamps determine motion on both surfaces. Persist carries the matching Anchor between typographic positions; shapes and backgrounds end with their own Beat. Overlap, Word Styling, and the PNG contract are unchanged.
