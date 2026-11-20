@@ -145,7 +145,7 @@ test('slow encoding reports a bounded queue and cancels without document or play
     }
     VideoEncoder.prototype.flush = async function() {
       await flush.call(this)
-      await new Promise(resolve => setTimeout(resolve, 180))
+      await new Promise(resolve => setTimeout(resolve, 1200))
     }
   })
   await page.goto('/')
@@ -193,5 +193,89 @@ for (const width of [320, 375, 390, 428, 1440]) {
     expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBe(width)
     await panel(page).getByRole('button', {name: 'Cancel'}).click()
     await expect(panel(page)).toContainText('Video export cancelled.')
+  })
+}
+
+test('iPhone Safari negotiation reports a private failure and retries the 15s demo as playable 720p MP4', async ({browser}, testInfo) => {
+  test.setTimeout(110000)
+  const context = await browser.newContext({
+    viewport: {width: 390, height: 844},
+    userAgent: 'Mozilla/5.0 (iPhone; CPU iPhone OS 18_6 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.6 Mobile/15E148 Safari/604.1',
+  })
+  try {
+    await context.addInitScript(() => {
+      const probe = VideoEncoder.isConfigSupported.bind(VideoEncoder)
+      const configure = VideoEncoder.prototype.configure
+      VideoEncoder.isConfigSupported = config => config.codec === 'avc1.42e028'
+        ? Promise.resolve({supported: true, config})
+        : config.width === 720 && config.codec.startsWith('avc') ? probe(config)
+          : Promise.resolve({supported: false, config})
+      VideoEncoder.prototype.configure = function(config) {
+        if (config.width === 1080) throw new DOMException('Hardware unavailable PRIVATE_PROJECT_TEXT', 'OperationError')
+        configure.call(this, config)
+      }
+      Object.defineProperty(navigator, 'clipboard', {value: {writeText: async (value: string) => {
+        document.documentElement.dataset.copied = value
+      }}})
+    })
+    const page = await context.newPage()
+    await page.goto('/', {waitUntil: 'domcontentloaded'})
+    await expect(page.locator('#composition-title')).toHaveValue('A Quiet Interval')
+    await start(page)
+    await expect(panel(page)).toContainText('encoder configure')
+    await panel(page).getByText('Export diagnostics').click()
+    const report = panel(page).getByRole('textbox', {name: 'Diagnostic report'})
+    await expect(report).toHaveValue(/Safari 18\.6.*CPU iPhone OS 18\.6/)
+    await expect(report).toHaveValue(/1080 × 1920, 30 fps; 450 frames/)
+    await expect(report).toHaveValue(/avc1\.42e028 \/ quality .* failed at encoder configure; support: true/)
+    await expect(report).toHaveValue(/OperationError: The browser reported unavailable codec resources/)
+    await expect(report).not.toHaveValue(/PRIVATE_PROJECT_TEXT|A Quiet Interval/)
+    const diagnostic = await report.inputValue()
+    await panel(page).getByRole('button', {name: 'Copy diagnostics'}).click()
+    await expect(page.locator('html')).toHaveAttribute('data-copied', diagnostic)
+    await panel(page).getByRole('button', {name: 'Retry at 720p'}).click()
+    const downloadLink = panel(page).getByRole('link', {name: 'Download video'})
+    await expect(downloadLink).toHaveAttribute('download', /\.mp4$/, {timeout: 90000})
+    await expect(panel(page)).toContainText('720 × 1280 · 30 fps')
+    await panel(page).getByRole('button', {name: 'Preview video'}).click()
+    const video = panel(page).locator('video')
+    await expect.poll(() => video.evaluate((element: HTMLVideoElement) => [element.videoWidth, element.videoHeight, element.duration])).toEqual([720, 1280, 15])
+    await video.evaluate((element: HTMLVideoElement) => element.play())
+    await expect.poll(() => video.evaluate((element: HTMLVideoElement) => element.currentTime)).toBeGreaterThan(0.1)
+    const [download] = await Promise.all([page.waitForEvent('download'), downloadLink.click()])
+    await download.saveAs(testInfo.outputPath('a-quiet-interval-720p.mp4'))
+    await video.dispatchEvent('error', {bubbles: false})
+    await expect(panel(page).getByRole('alert')).toContainText('Playback failed')
+    if (!await report.isVisible()) await panel(page).getByText('Export diagnostics').click()
+    await expect(report).toHaveValue(/browser playback.*MediaError/)
+    await expect(report).toHaveValue(/submitted\/encoded\/muxed: 450\/450\/450/)
+  } finally {
+    await context.close()
+  }
+})
+
+for (const stage of ['create VideoFrame', 'encoder flush'] as const) {
+  test(`reports a failure at ${stage} with frame counters`, async ({page}) => {
+    await page.addInitScript(failureStage => {
+      const probe = VideoEncoder.isConfigSupported.bind(VideoEncoder)
+      VideoEncoder.isConfigSupported = config => config.codec === 'vp8' ? probe(config)
+        : Promise.resolve({supported: false, config})
+      if (failureStage === 'create VideoFrame') {
+        globalThis.VideoFrame = new Proxy(VideoFrame, {
+          construct() {throw new DOMException('Frame constructor failed', 'OperationError')},
+        })
+      } else {
+        VideoEncoder.prototype.flush = () => Promise.reject(new DOMException('encoder failure', 'EncodingError'))
+      }
+    }, stage)
+    await page.goto('/')
+    await start(page)
+    await expect(panel(page)).toContainText(stage, {timeout: 45000})
+    await panel(page).getByText('Export diagnostics').click()
+    const report = panel(page).getByRole('textbox', {name: 'Diagnostic report'})
+    await expect(report).toHaveValue(stage === 'create VideoFrame'
+      ? /failed at create VideoFrame; support: true; submitted\/encoded\/muxed: 0\/0\/0.*OperationError/
+      : /failed at encoder flush; support: true; submitted\/encoded\/muxed: [1-9]\d*\/\d+\/\d+.*EncodingError/)
+    await expect(panel(page).getByRole('link', {name: 'Download video'})).toHaveCount(0)
   })
 }
