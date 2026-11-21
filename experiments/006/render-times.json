@@ -1,0 +1,22 @@
+{
+  "bundleSeconds": 12.356,
+  "stills": [
+    {
+      "name": "start",
+      "frame": 0,
+      "seconds": 0.636
+    },
+    {
+      "name": "occlusion",
+      "frame": 72,
+      "seconds": 0.613
+    },
+    {
+      "name": "reveal",
+      "frame": 141,
+      "seconds": 0.615
+    }
+  ],
+  "motionSeconds": 12.362,
+  "totalSeconds": 27.292
+}
