@@ -1,0 +1,483 @@
+{
+  "documentVersion": 1,
+  "title": "Пробка-призрак",
+  "originalText": "ПРОБКА.\nБЕЗ АВАРИИ?\n\nПлотный поток.\nМашины вправо →\n\nПервый притормозил.\nСледом — ещё двое.\n\nМашины вправо →\n← Волна торможения\n\nПробка-призрак.\nБез препятствия.",
+  "theme": "Night",
+  "seed": 23002,
+  "beats": [
+    {
+      "id": "hook",
+      "text": "ПРОБКА.\nБЕЗ АВАРИИ?",
+      "duration": 2.5,
+      "mode": "Reading",
+      "typography": {
+        "font": "Sans",
+        "size": 117,
+        "weight": 800,
+        "leading": 1.09,
+        "width": 83,
+        "align": "Left",
+        "bionic": false
+      },
+      "emphasis": [],
+      "effect": "Wave",
+      "reveal": "Lines",
+      "intensity": 0,
+      "transition": {
+        "type": "Replace"
+      },
+      "framing": {
+        "x": 49,
+        "y": 26,
+        "zoom": 100,
+        "crop": false
+      },
+      "impact": {
+        "kind": "Cut"
+      },
+      "scene": {
+        "background": {
+          "kind": "Gradient Drift",
+          "intensity": 32,
+          "speed": 0
+        },
+        "shapes": [
+          {
+            "kind": "Rectangle",
+            "x": 33,
+            "y": 51,
+            "size": 15,
+            "tone": "Cool"
+          },
+          {
+            "kind": "Rectangle",
+            "x": 51,
+            "y": 51,
+            "size": 15,
+            "tone": "Cool"
+          },
+          {
+            "kind": "Rectangle",
+            "x": 69,
+            "y": 51,
+            "size": 15,
+            "tone": "Accent"
+          }
+        ]
+      },
+      "cues": [
+        {
+          "target": 0,
+          "at": 0.1,
+          "duration": 0.8,
+          "action": "Move",
+          "x": 43,
+          "y": 51
+        },
+        {
+          "target": 1,
+          "at": 0.1,
+          "duration": 0.9,
+          "action": "Move",
+          "x": 59,
+          "y": 51
+        },
+        {
+          "target": 2,
+          "at": 0.1,
+          "duration": 0.95,
+          "action": "Move",
+          "x": 75,
+          "y": 51
+        }
+      ],
+      "wordStyles": [
+        {
+          "start": 0,
+          "end": 7,
+          "style": {
+            "color": "Accent"
+          }
+        }
+      ]
+    },
+    {
+      "id": "flow",
+      "text": "Плотный поток.\nМашины вправо →",
+      "duration": 3,
+      "mode": "Reveal",
+      "typography": {
+        "font": "Sans",
+        "size": 84,
+        "weight": 800,
+        "leading": 1.09,
+        "width": 83,
+        "align": "Left",
+        "bionic": false
+      },
+      "emphasis": [],
+      "effect": "Wave",
+      "reveal": "Lines",
+      "intensity": 0,
+      "transition": {
+        "type": "Replace"
+      },
+      "framing": {
+        "x": 46,
+        "y": 30,
+        "zoom": 100,
+        "crop": false
+      },
+      "impact": {
+        "kind": "Cut"
+      },
+      "scene": {
+        "background": {
+          "kind": "Gradient Drift",
+          "intensity": 32,
+          "speed": 0
+        },
+        "shapes": [
+          {
+            "kind": "Rectangle",
+            "x": 17,
+            "y": 51,
+            "size": 15,
+            "tone": "Cool"
+          },
+          {
+            "kind": "Rectangle",
+            "x": 41,
+            "y": 51,
+            "size": 15,
+            "tone": "Cool"
+          },
+          {
+            "kind": "Rectangle",
+            "x": 65,
+            "y": 51,
+            "size": 15,
+            "tone": "Cool"
+          }
+        ]
+      },
+      "cues": [
+        {
+          "target": 0,
+          "at": 0,
+          "duration": 3,
+          "action": "Move",
+          "x": 31,
+          "y": 51
+        },
+        {
+          "target": 1,
+          "at": 0,
+          "duration": 3,
+          "action": "Move",
+          "x": 55,
+          "y": 51
+        },
+        {
+          "target": 2,
+          "at": 0,
+          "duration": 3,
+          "action": "Move",
+          "x": 79,
+          "y": 51
+        }
+      ],
+      "wordStyles": [
+        {
+          "start": 15,
+          "end": 30,
+          "style": {
+            "color": "Cool"
+          }
+        }
+      ],
+      "timing": {
+        "revealDuration": 0.45
+      }
+    },
+    {
+      "id": "brake",
+      "text": "Первый притормозил.\nСледом — ещё двое.",
+      "duration": 4.5,
+      "mode": "Reveal",
+      "typography": {
+        "font": "Sans",
+        "size": 78,
+        "weight": 800,
+        "leading": 1.09,
+        "width": 83,
+        "align": "Left",
+        "bionic": false
+      },
+      "emphasis": [],
+      "effect": "Wave",
+      "reveal": "Lines",
+      "intensity": 0,
+      "transition": {
+        "type": "Replace"
+      },
+      "framing": {
+        "x": 49,
+        "y": 23,
+        "zoom": 100,
+        "crop": false
+      },
+      "impact": {
+        "kind": "Cut"
+      },
+      "scene": {
+        "background": {
+          "kind": "Gradient Drift",
+          "intensity": 32,
+          "speed": 0
+        },
+        "shapes": [
+          {
+            "kind": "Rectangle",
+            "x": 31,
+            "y": 51,
+            "size": 15,
+            "tone": "Cool"
+          },
+          {
+            "kind": "Rectangle",
+            "x": 55,
+            "y": 51,
+            "size": 15,
+            "tone": "Cool"
+          },
+          {
+            "kind": "Rectangle",
+            "x": 79,
+            "y": 51,
+            "size": 15,
+            "tone": "Accent"
+          }
+        ]
+      },
+      "cues": [
+        {
+          "target": 0,
+          "at": 0,
+          "duration": 2.2,
+          "action": "Move",
+          "x": 56,
+          "y": 51
+        },
+        {
+          "target": 1,
+          "at": 0,
+          "duration": 1.38,
+          "action": "Move",
+          "x": 73,
+          "y": 51
+        },
+        {
+          "target": 2,
+          "at": 0,
+          "duration": 0.56,
+          "action": "Move",
+          "x": 89,
+          "y": 51
+        }
+      ],
+      "wordStyles": [
+        {
+          "start": 7,
+          "end": 18,
+          "style": {
+            "color": "Accent"
+          }
+        }
+      ],
+      "timing": {
+        "revealDuration": 1.35
+      }
+    },
+    {
+      "id": "reverse",
+      "text": "Машины вправо →\n← Волна торможения",
+      "duration": 3,
+      "mode": "Reveal",
+      "typography": {
+        "font": "Sans",
+        "size": 79,
+        "weight": 800,
+        "leading": 1.09,
+        "width": 83,
+        "align": "Left",
+        "bionic": false
+      },
+      "emphasis": [],
+      "effect": "Wave",
+      "reveal": "Lines",
+      "intensity": 0,
+      "transition": {
+        "type": "Replace"
+      },
+      "framing": {
+        "x": 50,
+        "y": 28,
+        "zoom": 100,
+        "crop": false
+      },
+      "impact": {
+        "kind": "Cut"
+      },
+      "scene": {
+        "background": {
+          "kind": "Gradient Drift",
+          "intensity": 32,
+          "speed": 0
+        },
+        "shapes": [
+          {
+            "kind": "Rectangle",
+            "x": 38,
+            "y": 60,
+            "size": 15,
+            "tone": "Cool"
+          },
+          {
+            "kind": "Rectangle",
+            "x": 65,
+            "y": 60,
+            "size": 15,
+            "tone": "Cool"
+          },
+          {
+            "kind": "Line",
+            "x": 82,
+            "y": 43,
+            "size": 19,
+            "tone": "Accent"
+          }
+        ]
+      },
+      "cues": [
+        {
+          "target": 0,
+          "at": 0,
+          "duration": 3,
+          "action": "Move",
+          "x": 57,
+          "y": 60
+        },
+        {
+          "target": 1,
+          "at": 0,
+          "duration": 3,
+          "action": "Move",
+          "x": 84,
+          "y": 60
+        },
+        {
+          "target": 2,
+          "at": 0,
+          "duration": 3,
+          "action": "Move",
+          "x": 24,
+          "y": 43
+        }
+      ],
+      "wordStyles": [
+        {
+          "start": 0,
+          "end": 15,
+          "style": {
+            "color": "Cool"
+          }
+        },
+        {
+          "start": 16,
+          "end": 34,
+          "style": {
+            "color": "Accent"
+          }
+        }
+      ],
+      "timing": {
+        "revealDuration": 0.55
+      }
+    },
+    {
+      "id": "payoff",
+      "text": "Пробка-призрак.\nБез препятствия.",
+      "duration": 3,
+      "mode": "Reveal",
+      "typography": {
+        "font": "Sans",
+        "size": 105,
+        "weight": 800,
+        "leading": 1.09,
+        "width": 83,
+        "align": "Left",
+        "bionic": false
+      },
+      "emphasis": [],
+      "effect": "Wave",
+      "reveal": "Lines",
+      "intensity": 0,
+      "transition": {
+        "type": "Replace"
+      },
+      "framing": {
+        "x": 48,
+        "y": 70,
+        "zoom": 100,
+        "crop": false
+      },
+      "impact": {
+        "kind": "Cut"
+      },
+      "scene": {
+        "background": {
+          "kind": "Gradient Drift",
+          "intensity": 32,
+          "speed": 0
+        },
+        "shapes": [
+          {
+            "kind": "Rectangle",
+            "x": 38,
+            "y": 43,
+            "size": 15,
+            "tone": "Cool"
+          },
+          {
+            "kind": "Rectangle",
+            "x": 56,
+            "y": 43,
+            "size": 15,
+            "tone": "Cool"
+          },
+          {
+            "kind": "Rectangle",
+            "x": 74,
+            "y": 43,
+            "size": 15,
+            "tone": "Accent"
+          }
+        ]
+      },
+      "cues": [],
+      "wordStyles": [
+        {
+          "start": 0,
+          "end": 15,
+          "style": {
+            "color": "Accent"
+          }
+        }
+      ],
+      "timing": {
+        "revealDuration": 0.55
+      }
+    }
+  ]
+}

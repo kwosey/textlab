@@ -1,0 +1,117 @@
+{
+  "rendererRevision": "0954dec08d87c6f5475c06e22334984ede56d45d",
+  "exportPath": "Text Lab UI: Import JSON > Export video > Download video",
+  "chromium": "Chromium 156.0.8078.79 built on Debian GNU/Linux 13 (trixie)",
+  "container": "MP4",
+  "codec": "h264",
+  "profile": "Constrained Baseline",
+  "pixelFormat": "yuvj420p",
+  "width": 1080,
+  "height": 1920,
+  "fps": 30,
+  "durationSeconds": 16.0,
+  "decodedFrames": 480,
+  "audioStreams": 0,
+  "fileBytes": 1693293,
+  "sha256": {
+    "composition.json": "19517d1d2fecef792f547d2ca80f72d58d129a4401e04c54173a833e56249478",
+    "draft.mp4": "9800102e8bcafe02c04cb8e64fe80965a1bf8e04713cd095474e7c5e96a55a2a"
+  },
+  "renderPasses": [
+    {
+      "exportAndNativeCheckSeconds": 14.984159951000002,
+      "totalAutomationSeconds": 16.460677018
+    },
+    {
+      "exportAndNativeCheckSeconds": 15.05049056,
+      "totalAutomationSeconds": 16.34329159
+    }
+  ],
+  "schemaValidation": {
+    "ranges": [
+      "ПРОБКА.",
+      "Машины вправо →",
+      "притормозил",
+      "Машины вправо →",
+      "← Волна торможения",
+      "Пробка-призрак."
+    ],
+    "beatStarts": [
+      0,
+      2.5,
+      5.5,
+      10,
+      13
+    ],
+    "duration": 16
+  },
+  "fullFfmpegDecode": {
+    "success": true,
+    "seconds": 0.43849193399364594
+  },
+  "browserVerification": {
+    "packets": 480,
+    "ptsIntervalMatches30fps": true,
+    "audioTracks": 0,
+    "fidelityResolution": [
+      270,
+      480
+    ],
+    "maxPermittedMeanAbsoluteRgbError": 5,
+    "fidelity": [
+      {
+        "frame": 0,
+        "meanAbsoluteRgbError": 1.3875
+      },
+      {
+        "frame": 15,
+        "meanAbsoluteRgbError": 1.123886316872428
+      },
+      {
+        "frame": 45,
+        "meanAbsoluteRgbError": 1.1232664609053498
+      },
+      {
+        "frame": 60,
+        "meanAbsoluteRgbError": 1.1483513374485597
+      },
+      {
+        "frame": 98,
+        "meanAbsoluteRgbError": 1.1024485596707818
+      },
+      {
+        "frame": 174,
+        "meanAbsoluteRgbError": 1.005406378600823
+      },
+      {
+        "frame": 205,
+        "meanAbsoluteRgbError": 1.176633230452675
+      },
+      {
+        "frame": 234,
+        "meanAbsoluteRgbError": 1.1720756172839506
+      },
+      {
+        "frame": 325,
+        "meanAbsoluteRgbError": 1.075707304526749
+      },
+      {
+        "frame": 375,
+        "meanAbsoluteRgbError": 1.0961805555555555
+      },
+      {
+        "frame": 405,
+        "meanAbsoluteRgbError": 1.1277366255144032
+      },
+      {
+        "frame": 479,
+        "meanAbsoluteRgbError": 1.164673353909465
+      }
+    ],
+    "completeNativePlayback": {
+      "ended": true,
+      "currentTime": 16
+    },
+    "verificationSeconds": 17.286654528
+  }
+}

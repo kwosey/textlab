@@ -1,0 +1,22 @@
+beat,event_type,target,start_s,end_s,start_frame,end_frame_exclusive,fps,notes
+hook,beat,scene,0.0,2.5,0,75,30,Вопрос на первом кадре
+hook,hold,text,0.0,2.5,0,75,30,Полный текст
+hook,move,cars,0.10,1.05,3,32,30,Сближение
+flow,beat,scene,2.5,5.5,75,165,30,Плотный поток
+flow,reveal,text,2.5,2.95,75,89,30,Две строки
+flow,hold,text,2.95,5.5,89,165,30,Полный текст
+flow,move,cars,2.5,5.5,75,165,30,Равные интервалы
+brake,beat,scene,5.5,10.0,165,300,30,Торможение
+brake,reveal,text,5.5,6.85,165,206,30,Вторая строка становится видимой около остановки средней машины
+brake,hold,text,6.85,10.0,206,300,30,Полный текст
+brake,move,front-car,5.5,6.06,165,182,30,Останавливается первым
+brake,move,middle-car,5.5,6.88,165,207,30,Останавливается вторым
+brake,move,rear-car,5.5,7.70,165,231,30,Останавливается последним
+reverse,beat,scene,10.0,13.0,300,390,30,Встречные направления
+reverse,reveal,text,10.0,10.55,300,317,30,Цвет и стрелки
+reverse,hold,text,10.55,13.0,317,390,30,Полный текст
+reverse,move,cars,10.0,13.0,300,390,30,Вправо
+reverse,move,braking-front,10.0,13.0,300,390,30,Влево
+payoff,beat,scene,13.0,16.0,390,480,30,Ответ на вопрос
+payoff,reveal,text,13.0,13.55,390,407,30,Название явления
+payoff,hold,text,13.55,16.0,407,480,30,Финальная пауза
