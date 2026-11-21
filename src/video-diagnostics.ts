@@ -5,6 +5,23 @@ export type VideoStage = 'API' | 'fonts' | 'canvas allocation' | 'codec support'
   'render frame' | 'create VideoFrame' | 'encoder encode' | 'encoder flush' |
   'mux start' | 'mux packet' | 'mux finalize' | 'file validation' | 'browser playback' | 'memory limit' | 'abort'
 
+export type PacketObservation = {
+  reason: 'timestamp corrected' | 'unexpected timestamp' | 'duplicate frame' | 'empty packet' | 'mux packet'
+  timestamp: number
+  duration: number | null
+  bytes: number
+  type: EncodedVideoChunkType
+  matchedFrame?: number
+  expectedTimestamp?: number
+  exactPending: boolean
+  previousOutputs: number
+  nearestPending: number[]
+  submittedIndex: number
+  lastRequestedKey: number
+  nativeQueue: number
+  outputQueue: number
+  elapsedMs: number
+}
 type DiagnosticError = {name: string; message: string}
 export type VideoAttempt = {
   codec: string
@@ -20,6 +37,10 @@ export type VideoAttempt = {
   peakQueue: number
   peakOutstanding: number
   elapsedMs: number
+  correctedTimestamps?: number
+  packet?: PacketObservation
+  firstCorrection?: PacketObservation
+  missingTimestamps?: number[]
 }
 export type VideoDiagnostics = {
   browser: string
@@ -54,7 +75,10 @@ export function diagnosticError(error: unknown, stage: VideoStage): DiagnosticEr
   const reasons: [RegExp, string][] = [
     [/out of memory|allocation failed|insufficient memory|not enough memory|failed to allocate/i, 'The browser could not allocate enough memory.'],
     [/quota|memory limit/i, 'The job exceeded a storage or memory limit.'],
-    [/timestamp|empty data|dropped video frames/i, 'The encoder returned missing, empty or unexpected timestamped frames.'],
+    [/Encoded packet has an unexpected timestamp/, 'The packet timestamp does not match a submitted frame.'],
+    [/Encoded packet repeats a frame/, 'The encoder returned a second packet for an already matched frame.'],
+    [/Encoded packet is empty/, 'The encoder returned a zero-byte packet.'],
+    [/dropped video frames/i, 'The encoder did not return packets for all submitted frames.'],
     [/decoder configuration|avcC|annex b/i, 'The encoder did not supply usable AVC container configuration.'],
     [/not supported|unsupported/i, 'The browser rejected this configuration or operation.'],
     [/hardware|resource exhausted/i, 'The browser reported unavailable codec resources.'],
@@ -76,13 +100,21 @@ export function diagnosticError(error: unknown, stage: VideoStage): DiagnosticEr
   return {name, message: reason ?? fallback[stage] ?? 'The browser did not supply a recognized reason for this stage.'}
 }
 
+function packetText(packet: PacketObservation) {
+  return `${packet.reason}: PTS ${packet.timestamp} µs; duration ${packet.duration ?? 'unavailable'} µs; ${packet.bytes} bytes; ${packet.type}; matched frame ${packet.matchedFrame ?? 'none'}; exact pending ${packet.exactPending}; prior packets for timestamp/frame ${packet.previousOutputs}; intended PTS ${packet.expectedTimestamp ?? 'none'} µs; nearest pending PTS [${packet.nearestPending.join(', ')}] µs; submitted index ${packet.submittedIndex}; last requested keyframe ${packet.lastRequestedKey}; native/output queue ${packet.nativeQueue}/${packet.outputQueue}; ${packet.elapsedMs} ms`
+}
+
 export function diagnosticText(job: VideoDiagnostics) {
   const lines = [
     'Text Lab video diagnostics',
     `Browser: ${job.browser}; OS: ${job.os}; Device memory hint: ${job.memoryGiB ?? 'unavailable'}${job.memoryGiB ? ' GiB' : ''}`,
     `Target: ${job.width} × ${job.height}, ${job.fps} fps; ${job.total} frames; ${job.elapsedMs} ms`,
     `Stage: ${job.stage}${job.error ? ` · ${job.error.name}: ${job.error.message}` : ''}`,
-    ...job.attempts.map(attempt => `${attempt.codec} / ${attempt.latencyMode} / ${attempt.bitrate / 1e6} Mbps · ${attempt.result} at ${attempt.stage}; support: ${attempt.supported ?? 'unknown'}; submitted/encoded/muxed: ${attempt.submitted}/${attempt.encoded}/${attempt.muxed}; peak queue/outstanding: ${attempt.peakQueue}/${attempt.peakOutstanding}; ${attempt.elapsedMs} ms${attempt.error ? ` · ${attempt.error.name}: ${attempt.error.message}` : ''}`),
+    ...job.attempts.flatMap(attempt => [`${attempt.codec} / ${attempt.latencyMode} / ${attempt.bitrate / 1e6} Mbps · ${attempt.result} at ${attempt.stage}; support: ${attempt.supported ?? 'unknown'}; submitted/encoded/muxed: ${attempt.submitted}/${attempt.encoded}/${attempt.muxed}; peak queue/outstanding: ${attempt.peakQueue}/${attempt.peakOutstanding}; ${attempt.elapsedMs} ms${attempt.error ? ` · ${attempt.error.name}: ${attempt.error.message}` : ''}`,
+      ...(attempt.firstCorrection ? [`Corrected timestamps: ${attempt.correctedTimestamps}. First: ${packetText(attempt.firstCorrection)}`] : []),
+      ...(attempt.packet ? [packetText(attempt.packet)] : []),
+      ...(attempt.missingTimestamps ? [`Missing packet PTS [${attempt.missingTimestamps.join(', ')}] µs`] : []),
+    ]),
   ]
   return lines.join('\n')
 }

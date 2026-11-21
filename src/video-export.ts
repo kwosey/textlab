@@ -1,11 +1,14 @@
 import {BlobSource, BufferTarget, EncodedPacket, EncodedVideoPacketSource, Input, MP4, Mp4OutputFormat, Output, VideoSampleSink, WEBM, WebMOutputFormat} from 'mediabunny'
 import {HEIGHT, WIDTH} from './layout'
-import {createDiagnostics, diagnosticError, VideoExportError, type VideoAttempt, type VideoResolution, type VideoStage} from './video-diagnostics'
+import {createDiagnostics, diagnosticError, VideoExportError, type PacketObservation, type VideoAttempt, type VideoResolution, type VideoStage} from './video-diagnostics'
 import type {Document as Project} from './model'
 import {renderFrame} from './render'
 import {totalTime} from './timeline'
 
 export const videoFps = 30
+// Allow up to one millisecond of timestamp quantization. Frames are >33 ms apart.
+const timestampToleranceUs = 1000
+const keyFrameInterval = 2 * videoFps
 const maxQueue = 8
 const maxOutstanding = 24
 const compressedLimit = 192 * 1024 * 1024
@@ -20,9 +23,11 @@ type Candidate = typeof candidates[number]
 export type VideoProgress = {frames: number; total: number; seconds: number; format: Candidate['extension']; width: number; height: number}
 class VideoSizeError extends Error {}
 
+const frameTimestamp = (index: number) => Math.round(index / videoFps * 1e6)
+
 export function frameTiming(index: number, duration: number) {
   const start = index / videoFps
-  const stamp = Math.round(start * 1e6)
+  const stamp = frameTimestamp(index)
   const end = Math.round(Math.min((index + 1) / videoFps, duration) * 1e6)
   return {start, stamp, length: Math.max(1, end - stamp)}
 }
@@ -79,6 +84,8 @@ async function encode(project: Project, surface: HTMLCanvasElement, ctx: CanvasR
   output.addVideoTrack(source, {maximumPacketCount: total})
   const queue: {chunk: EncodedVideoChunk; metadata?: EncodedVideoChunkMetadata}[] = []
   const expected = new Map<number, number>()
+  const started = performance.now()
+  let lastRequestedKey = -1
   let codecError: {error: Error; stage: VideoStage} | undefined
   let codecStage: VideoStage = 'encoder configure'
   let bytes = 0
@@ -105,17 +112,44 @@ async function encode(project: Project, surface: HTMLCanvasElement, ctx: CanvasR
     while (queue.length) {
       const {chunk, metadata} = queue.shift()!
       inspection.stage = 'encoder encode'
-      const length = expected.get(chunk.timestamp)
-      if (!length || !chunk.byteLength) throw new Error('The encoder returned incorrect frame timestamps or empty data.')
-      expected.delete(chunk.timestamp)
+      const index = Math.round(chunk.timestamp * videoFps / 1e6)
+      const stamp = frameTimestamp(index)
+      const matches = index >= 0 && index < inspection.submitted &&
+        Math.abs(stamp - chunk.timestamp) <= timestampToleranceUs
+      const length = matches ? expected.get(stamp) : undefined
+      const observe = (reason: PacketObservation['reason']): PacketObservation => ({
+        reason, timestamp: chunk.timestamp, duration: chunk.duration, bytes: chunk.byteLength, type: chunk.type,
+        matchedFrame: matches ? index : undefined, expectedTimestamp: matches ? stamp : undefined, exactPending: expected.has(chunk.timestamp),
+        previousOutputs: matches && length === undefined ? 1 : 0,
+        nearestPending: [...expected.keys()].sort((a, b) => Math.abs(a - chunk.timestamp) - Math.abs(b - chunk.timestamp)).slice(0, 3),
+        submittedIndex: inspection.submitted - 1, lastRequestedKey, nativeQueue: encoder.encodeQueueSize,
+        outputQueue: queue.length, elapsedMs: Math.round(performance.now() - started),
+      })
+      if (!chunk.byteLength || length === undefined) {
+        const reason = !chunk.byteLength ? 'empty packet' : matches ? 'duplicate frame' : 'unexpected timestamp'
+        inspection.packet = observe(reason)
+        throw new Error(reason === 'empty packet' ? 'Encoded packet is empty' : reason === 'duplicate frame'
+          ? 'Encoded packet repeats a frame' : 'Encoded packet has an unexpected timestamp')
+      }
+      if (stamp !== chunk.timestamp) {
+        inspection.correctedTimestamps = (inspection.correctedTimestamps ?? 0) + 1
+        inspection.firstCorrection ??= observe('timestamp corrected')
+      }
       bytes += chunk.byteLength
       if (bytes > compressedLimit) {
         inspection.stage = 'memory limit'
         throw new VideoSizeError('The video exceeds the local memory limit.')
       }
       inspection.stage = 'mux packet'
-      const packet = EncodedPacket.fromEncodedChunk(chunk)
-      await abortable(source.add(packet.clone({duration: length / 1e6}), metadata), signal)
+      try {
+        // Keep callbacks in decode order. Only restore the matched frame's presentation time.
+        const packet = EncodedPacket.fromEncodedChunk(chunk)
+        await abortable(source.add(packet.clone({timestamp: stamp / 1e6, duration: length / 1e6}), metadata), signal)
+      } catch (error) {
+        inspection.packet = observe('mux packet')
+        throw error
+      }
+      expected.delete(stamp)
       inspection.muxed++
     }
   }
@@ -130,7 +164,10 @@ async function encode(project: Project, surface: HTMLCanvasElement, ctx: CanvasR
     codecStage = 'encoder encode'
     await drain()
     inspection.stage = 'encoder flush'
-    if (expected.size) throw new Error('The encoder dropped video frames.')
+    if (expected.size) {
+      inspection.missingTimestamps = [...expected.keys()].slice(0, 3)
+      throw new Error('The encoder dropped video frames.')
+    }
   }
 
   try {
@@ -167,7 +204,9 @@ async function encode(project: Project, surface: HTMLCanvasElement, ctx: CanvasR
       const frame = new VideoFrame(surface, {timestamp: stamp, duration: length, alpha: 'discard'})
       try {
         inspection.stage = 'encoder encode'
-        encoder.encode(frame, {keyFrame: i % (2 * videoFps) === 0})
+        const keyFrame = i % keyFrameInterval === 0
+        encoder.encode(frame, {keyFrame})
+        if (keyFrame) lastRequestedKey = i
         inspection.submitted++
         inspection.peakQueue = Math.max(inspection.peakQueue, encoder.encodeQueueSize)
         inspection.peakOutstanding = Math.max(inspection.peakOutstanding, expected.size)
