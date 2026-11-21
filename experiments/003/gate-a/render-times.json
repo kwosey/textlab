@@ -1,0 +1,31 @@
+{
+  "width": 540,
+  "height": 960,
+  "fps": 30,
+  "bundleSeconds": 12.053,
+  "stills": [
+    {
+      "name": "opening",
+      "frame": 18,
+      "seconds": 0.635
+    },
+    {
+      "name": "braking",
+      "frame": 198,
+      "seconds": 0.664
+    },
+    {
+      "name": "reveal",
+      "frame": 344,
+      "seconds": 0.601
+    }
+  ],
+  "preview": {
+    "frameRangeInclusive": [
+      153,
+      374
+    ],
+    "seconds": 17.123
+  },
+  "totalSeconds": 31.776
+}
